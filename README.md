@@ -336,22 +336,77 @@ OUTPUT: "Nasi Lemak, Medium-Large portion, 748 kcal"
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart LR
-    A[📷 Input Image] --> B[🔧 Preprocessing]
-    B --> C[🤖 Classification]
-    B --> D[✂️ Segmentation]
-    C --> E[📏 Portion Estimation]
-    D --> E
-    E --> F[🔢 Calorie Calculation]
-    F --> G[📊 Output Result]
+flowchart TB
+    subgraph INPUT["📷 INPUT"]
+        A[Food Image<br/>JPG/PNG]
+    end
     
-    style A fill:#e1f5fe
-    style B fill:#fff3e0
-    style C fill:#f3e5f5
-    style D fill:#e8f5e9
-    style E fill:#fce4ec
-    style F fill:#fff8e1
-    style G fill:#e0f2f1
+    subgraph PREPROCESS["🔧 PREPROCESSING MODULE"]
+        B1[imresize<br/>512×512]
+        B2[imadjust<br/>Histogram Stretch]
+        B3[medfilt2<br/>Noise Reduction]
+        B1 --> B2 --> B3
+    end
+    
+    subgraph FEATURES["🎨 FEATURE EXTRACTION"]
+        C1[RGB Histogram<br/>48 features]
+        C2[HSV Histogram<br/>48 features]
+        C3[Statistics<br/>12 features]
+        C4[GLCM Texture<br/>16 features]
+    end
+    
+    subgraph CLASSIFY["🤖 CLASSIFICATION"]
+        D1[Load SVM Model]
+        D2[Normalize Features]
+        D3[Predict Class]
+        D4[Calculate Confidence]
+        D1 --> D2 --> D3 --> D4
+    end
+    
+    subgraph SEGMENT["✂️ SEGMENTATION"]
+        E1[RGB → HSV]
+        E2[Color Thresholding]
+        E3[Morphology<br/>Open/Close/Fill]
+        E4[K-means<br/>5 clusters]
+        E1 --> E2 --> E3 --> E4
+    end
+    
+    subgraph PORTION["📏 PORTION ESTIMATION"]
+        F1[Count Food Pixels]
+        F2[Get Reference Area]
+        F3[Calculate Ratio]
+        F1 --> F3
+        F2 --> F3
+    end
+    
+    subgraph CALORIES["🔢 CALORIE CALCULATION"]
+        G1[Lookup MyFCD<br/>Base Calories]
+        G2[Apply Ratio]
+        G3[Calculate Macros<br/>P/C/F]
+        G1 --> G2 --> G3
+    end
+    
+    subgraph OUTPUT["📊 OUTPUT"]
+        H[Food Name<br/>Confidence %<br/>Portion Size<br/>Calories kcal<br/>Nutrition Info]
+    end
+    
+    A --> PREPROCESS
+    B3 --> C1 & C2 & C3 & C4
+    C1 & C2 & C3 & C4 --> D1
+    B3 --> E1
+    D4 --> F2
+    E4 --> F1
+    F3 --> G1
+    G3 --> H
+    
+    style INPUT fill:#e3f2fd
+    style PREPROCESS fill:#fff3e0
+    style FEATURES fill:#f3e5f5
+    style CLASSIFY fill:#e8f5e9
+    style SEGMENT fill:#fce4ec
+    style PORTION fill:#fff8e1
+    style CALORIES fill:#ffebee
+    style OUTPUT fill:#e0f2f1
 ```
 
 ---
