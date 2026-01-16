@@ -77,7 +77,7 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
         
         fprintf('      Loading %d images...\n', numImages);
         
-        classFeatures = zeros(numImages, 124);  % Preallocate
+        classFeatures = zeros(numImages, 127);  % Preallocate (108 color + 19 texture)
         validCount = 0;
         
         for i = 1:numImages

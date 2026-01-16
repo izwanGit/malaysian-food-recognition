@@ -53,7 +53,7 @@ function testFullPipeline()
             
             % Validate outputs
             assert(~isempty(processedImg), 'Pre-processing failed');
-            assert(length(features) == 124, 'Feature extraction failed');
+            assert(length(features) == 127, 'Feature extraction failed');
             assert(~isempty(mask), 'Segmentation failed');
             assert(portionRatio > 0, 'Portion estimation failed');
             assert(calories > 0, 'Calorie calculation failed');

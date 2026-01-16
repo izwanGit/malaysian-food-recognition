@@ -31,9 +31,9 @@ function testFeatureExtraction()
     %% Test 3: Combined Feature Extraction
     fprintf('Test 3: Combined Feature Extraction... ');
     [features, featureNames] = extractFeatures(testImg);
-    assert(length(features) == 124, 'Combined features should have 124 elements');
-    assert(length(featureNames) == 124, 'Feature names should have 124 elements');
-    fprintf('PASSED (124 total features)\n');
+    assert(length(features) == 127, 'Combined features should have 127 elements');
+    assert(length(featureNames) == 127, 'Feature names should have 127 elements');
+    fprintf('PASSED (127 total features)\n');
     
     %% Test 4: Feature Normalization
     fprintf('Test 4: Feature Values... ');
@@ -60,7 +60,7 @@ function testFeatureExtraction()
         realImg = imread(fullfile(datasetPath, images(1).name));
         realImg = imresize(realImg, [512, 512]);
         [realFeatures, ~] = extractFeatures(im2double(realImg));
-        assert(length(realFeatures) == 124, 'Real image feature extraction failed');
+        assert(length(realFeatures) == 127, 'Real image feature extraction failed');
         fprintf('PASSED\n');
     else
         fprintf('SKIPPED (no images)\n');

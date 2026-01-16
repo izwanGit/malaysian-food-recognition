@@ -93,7 +93,7 @@ flowchart TD
 
 ### Step 2: Feature Extraction 🎨
 
-**What happens:** The image is converted into **124 numbers** that describe its visual characteristics.
+**What happens:** The image is converted into **127 numbers** that describe its visual characteristics.
 
 #### Color Features (108 numbers):
 
@@ -128,7 +128,7 @@ For each of 4 directions (0°, 45°, 90°, 135°):
 
 ```mermaid
 flowchart TD
-    A["🔢 124 Features"] --> B["🤖 SVM CLASSIFIER"]
+    A["🔢 127 Features"] --> B["🤖 SVM CLASSIFIER"]
     B --> C["📚 Trained Model<br/>1400 images learned"]
     C --> D["🔍 Compare Features<br/>using RBF kernel"]
     D --> E["🎯 Find Closest Match"]
@@ -140,7 +140,7 @@ flowchart TD
 ```
 
 **How SVM works (simplified):**
-- During training, SVM finds the best "boundaries" that separate different food classes in 124-dimensional space
+- During training, SVM finds the best "boundaries" that separate different food classes in 127-dimensional space
 - During prediction, it checks which side of the boundaries the new image falls on
 - RBF kernel allows non-linear boundaries (curved, not just straight lines)
 
@@ -305,7 +305,7 @@ INPUT: photo of Nasi Lemak
              │
              ▼
     ┌─────────────────┐
-    │ Feature Extract │ → [0.23, 0.15, 0.08, ..., 0.67] (124 numbers)
+    │ Feature Extract │ → [0.23, 0.15, 0.08, ..., 0.67] (127 numbers)
     └────────┬────────┘
              │
              ▼
@@ -506,9 +506,9 @@ malaysian-food-recognition/
 │   └── noiseFilter.m          # Noise reduction (median/gaussian/bilateral)
 │
 ├── 📁 features/                # Feature Extraction Module
-│   ├── extractFeatures.m      # Combined feature vector (124 features)
+│   ├── extractFeatures.m      # Combined feature vector (127 features)
 │   ├── extractColorFeatures.m # Color histograms + statistics (108 features)
-│   └── extractTextureFeatures.m # GLCM at 4 orientations (16 features)
+│   └── extractTextureFeatures.m # GLCM + Mean/Std/Smoothness (19 features)
 │
 ├── 📁 classification/          # Classification Module
 │   ├── trainClassifier.m      # SVM training with RBF kernel
