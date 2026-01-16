@@ -9,12 +9,12 @@
 %   img - RGB image (preprocessed, uint8 or double)
 %
 % Outputs:
-%   features     - 1 x N feature vector (N = 124 features)
+%   features     - 1 x N feature vector (N = 127 features)
 %   featureNames - Cell array of feature names for interpretation
 %
 % Feature Composition:
 %   - Color features: 108 features (RGB + HSV histograms + statistics)
-%   - Texture features: 16 features (GLCM at 4 orientations)
+%   - Texture features: 19 features (GLCM + Mean/Std/Smoothness)
 
 function [features, featureNames] = extractFeatures(img)
     %% Input validation

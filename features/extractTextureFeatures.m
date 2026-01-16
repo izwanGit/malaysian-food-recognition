@@ -48,22 +48,39 @@ function [textureFeatures, featureNames] = extractTextureFeatures(img)
     %% Extract GLCM properties
     stats = graycoprops(glcms, {'Contrast', 'Correlation', 'Energy', 'Homogeneity'});
     
-    %% Arrange features (all 4 orientations for each property)
+    %% Calculate Statistical Features (Rubric Requirement)
+    % Mean, Standard Deviation, and Smoothness from grayscale image
+    pixelValues = double(grayImg(:)) / 255;  % Normalize to [0,1]
+    
+    statMean = mean(pixelValues);
+    statStd = std(pixelValues);
+    statSmoothness = 1 - (1 / (1 + statStd^2));  % R = 1 - 1/(1+var)
+    
+    %% Arrange features
+    % 16 GLCM features + 3 Statistical features = 19 Texture Features
     textureFeatures = [stats.Contrast, stats.Correlation, ...
-                       stats.Energy, stats.Homogeneity];
+                       stats.Energy, stats.Homogeneity, ...
+                       statMean, statStd, statSmoothness];
     
     %% Generate feature names
     if nargout > 1
         orientations = {'0', '45', '90', '135'};
         properties = {'Contrast', 'Correlation', 'Energy', 'Homogeneity'};
         
-        featureNames = cell(1, 16);
+        featureNames = cell(1, 19);
         idx = 1;
+        
+        % GLCM Names
         for p = 1:4
             for o = 1:4
                 featureNames{idx} = sprintf('GLCM_%s_%sdeg', properties{p}, orientations{o});
                 idx = idx + 1;
             end
         end
+        
+        % Statistical Names
+        featureNames{17} = 'Intensity_Mean';
+        featureNames{18} = 'Intensity_Std';
+        featureNames{19} = 'Intensity_Smoothness';
     end
 end
