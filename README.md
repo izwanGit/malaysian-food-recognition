@@ -59,11 +59,12 @@ An intelligent image processing system that:
 |---------|-------------|
 | 🖼️ **Image Preprocessing** | Histogram stretching, CLAHE, median/Gaussian/bilateral filtering |
 | 🎨 **Feature Extraction** | 124 features: RGB/HSV histograms (108) + GLCM textures (16) |
-| 🤖 **Classification** | Multi-class SVM with RBF kernel using ECOC strategy |
+| 🤖 **Classification** | Multi-class SVM with RBF kernel, **5-fold cross-validation** |
+| 📊 **Evaluation** | Confusion matrix, precision/recall/F1-score per class |
 | ✂️ **Segmentation** | HSV thresholding + morphology + k-means clustering |
 | 📏 **Portion Estimation** | Food-specific reference areas with ratio calculation |
 | 🔢 **Calorie Calculation** | MyFCD database with macronutrient breakdown |
-| 🖥️ **Interactive GUI** | User-friendly App Designer application |
+| 🖥️ **Premium GUI** | Modern UI/UX with color-coded confidence meter |
 
 ---
 
@@ -657,17 +658,20 @@ Portion Labels:
 
 ## 🖥️ GUI Application
 
-Launch the GUI with:
+Launch the premium GUI with:
 ```matlab
 HawkerFoodCalorieApp()
 ```
 
-**Features:**
-- 📤 Load image from file
-- 🔍 Analyze with one click
-- 🖼️ View original, processed, and segmented images
-- 📊 Display nutritional breakdown
-- 🔄 Reset for new analysis
+### UI/UX Features:
+| Feature | Description |
+|---------|-------------|
+| 🎨 **Modern Design** | Clean card-based layout with professional color scheme |
+| � **Confidence Meter** | Color-coded: Green (≥80%), Orange (≥50%), Red (<50%) |
+| � **Calorie Display** | Large prominent calorie count with daily value % |
+| 📈 **Macro Breakdown** | Protein, carbohydrates, and fat in grams |
+| ✨ **Status Feedback** | Real-time status with emoji indicators |
+| ⚡ **Processing Time** | Shows analysis duration in seconds |
 
 ---
 
@@ -677,14 +681,20 @@ HawkerFoodCalorieApp()
 
 | Function | Description |
 |----------|-------------|
-| `analyzeHawkerFood(imagePath)` | Complete analysis pipeline |
-| `preprocessImage(img)` | Pre-process image |
-| `extractFeatures(img)` | Extract 124 features |
-| `classifyFood(img)` | Classify food type |
+| `analyzeHawkerFood(img)` | Complete analysis pipeline |
+| `trainClassifier()` | Train SVM with 5-fold cross-validation |
+| `classifyFood(img)` | Classify food type with confidence |
 | `segmentFood(img)` | Segment food region |
 | `estimatePortion(mask, class)` | Estimate portion size |
 | `calculateCalories(class, ratio)` | Calculate calories |
-| `displayResults(results)` | Visualize results |
+
+### Evaluation Functions
+
+| Function | Description |
+|----------|-------------|
+| `plotConfusionMatrix()` | Visualize confusion matrix heatmap |
+| `evaluateModel(testPath)` | Evaluate on test dataset |
+| `displayResults(results)` | Visualize analysis results |
 
 ### Example Output
 
