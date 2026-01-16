@@ -1,0 +1,52 @@
+# MATLAB Project .gitignore
+
+# MATLAB Temporary Files
+*.asv
+*.m~
+*.autosave
+
+# Simulink autosave files
+*.slxc
+
+# MEX files
+*.mex*
+
+# Compiled Java files
+*.class
+
+# Generated files
+slprj/
+sccprj/
+codegen/
+
+# Cache directory
+.MathWorks/
+
+# App Designer autosave
+*.mlappinstall
+
+# Project files (optional - keep if you want)
+# *.prj
+
+# Large data files
+*.mat
+!models/foodClassifier.mat
+
+# Dataset (too large for git - download via kagglehub)
+dataset/train/*
+dataset/test/*
+!dataset/train/.gitkeep
+!dataset/test/.gitkeep
+
+# Results folder (generated)
+results/*
+!results/.gitkeep
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
