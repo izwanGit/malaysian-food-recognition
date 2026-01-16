@@ -9,15 +9,16 @@
 %   img - RGB image (double or uint8)
 %
 % Outputs:
-%   textureFeatures - 1 x 16 feature vector
+%   textureFeatures - 1 x 19 feature vector
 %   featureNames    - Cell array of feature names
 %
-% GLCM Features (16 total):
-%   4 orientations (0°, 45°, 90°, 135°) x 4 properties:
-%   - Contrast: Measures local intensity variations
-%   - Correlation: Measures linear dependency of gray levels
-%   - Energy: Measures textural uniformity (sum of squared elements)
-%   - Homogeneity: Measures closeness to diagonal elements
+% Texture Features (19 total):
+%   GLCM (16): 4 orientations (0°, 45°, 90°, 135°) x 4 properties:
+%     - Contrast: Measures local intensity variations
+%     - Correlation: Measures linear dependency of gray levels
+%     - Energy: Measures textural uniformity (sum of squared elements)
+%     - Homogeneity: Measures closeness to diagonal elements
+%   Statistical (3): Mean, Standard Deviation, Smoothness (Rubric requirement)
 
 function [textureFeatures, featureNames] = extractTextureFeatures(img)
     %% Convert to grayscale
