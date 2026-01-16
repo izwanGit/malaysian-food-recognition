@@ -353,7 +353,7 @@ flowchart TB
         C1[RGB Histogram<br/>48 features]
         C2[HSV Histogram<br/>48 features]
         C3[Statistics<br/>12 features]
-        C4[GLCM Texture<br/>16 features]
+        C4[GLCM + Stats<br/>19 features]
     end
     
     subgraph CLASSIFY["🤖 CLASSIFICATION"]

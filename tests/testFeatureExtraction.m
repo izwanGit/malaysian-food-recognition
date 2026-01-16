@@ -24,9 +24,9 @@ function testFeatureExtraction()
     %% Test 2: Texture Feature Extraction
     fprintf('Test 2: Texture Feature Extraction... ');
     [textureFeatures, textureNames] = extractTextureFeatures(testImg);
-    assert(length(textureFeatures) == 16, 'Texture features should have 16 elements');
-    assert(length(textureNames) == 16, 'Texture names should have 16 elements');
-    fprintf('PASSED (16 features)\n');
+    assert(length(textureFeatures) == 19, 'Texture features should have 19 elements');
+    assert(length(textureNames) == 19, 'Texture names should have 19 elements');
+    fprintf('PASSED (19 features including Smoothness)\n');
     
     %% Test 3: Combined Feature Extraction
     fprintf('Test 3: Combined Feature Extraction... ');
