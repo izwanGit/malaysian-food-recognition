@@ -58,7 +58,7 @@ An intelligent image processing system that:
 | Feature | Description |
 |---------|-------------|
 | 🖼️ **Image Preprocessing** | Histogram stretching, CLAHE, median/Gaussian/bilateral filtering |
-| 🎨 **Feature Extraction** | 124 features: RGB/HSV histograms (108) + GLCM textures (16) |
+| 🎨 **Feature Extraction** | **127 features**: Color (108) + Texture (19 including **Smoothness**) |
 | 🤖 **Classification** | Multi-class SVM with RBF kernel, **5-fold cross-validation** |
 | 📊 **Evaluation** | Confusion matrix, precision/recall/F1-score per class |
 | ✂️ **Segmentation** | HSV thresholding + morphology + k-means clustering |
@@ -569,9 +569,9 @@ malaysian-food-recognition/
 - HSV histogram: 16 bins × 3 channels = 48 features
 - Channel statistics: mean + std × 6 channels = 12 features
 
-**Texture Features (16 total):**
-- GLCM at 4 orientations (0°, 45°, 90°, 135°)
-- Properties: Contrast, Correlation, Energy, Homogeneity
+**Texture Features (19 total) - Matching Rubric Table 2:**
+- GLCM Features (16): Contrast, Correlation, Energy, Homogeneity (at 4 orientations)
+- Statistical Features (3): Mean, Standard Deviation, **Smoothness**
 
 ### 3. Classification
 
