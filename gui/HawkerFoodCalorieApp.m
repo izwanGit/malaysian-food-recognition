@@ -28,10 +28,14 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
         ControlPanel               matlab.ui.container.Panel
         ControlGrid                matlab.ui.container.GridLayout
         
-        % Buttons
+        % Buttons & Controls
         LoadButton                 matlab.ui.control.Button
         AnalyzeButton              matlab.ui.control.Button
         ResetButton                matlab.ui.control.Button
+        
+        % Classifier Selection
+        ClassifierDropdown         matlab.ui.control.DropDown
+        ClassifierLabel            matlab.ui.control.Label
         
         % Results Display
         ResultsPanel               matlab.ui.container.Panel
@@ -59,12 +63,14 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
         CurrentImage
         CurrentResults
         ProjectPath
+        UseDeepLearning = false    % Toggle for DL classification
         
         % Colors
         PrimaryColor = [0.16, 0.50, 0.73]      % Blue
         SecondaryColor = [0.18, 0.80, 0.44]    % Green
         AccentColor = [0.90, 0.49, 0.13]       % Orange
         DangerColor = [0.91, 0.30, 0.24]       % Red
+        DLColor = [0.58, 0.26, 0.70]           % Purple (for DL)
         BackgroundColor = [0.95, 0.96, 0.98]   % Light Gray
         CardColor = [1, 1, 1]                   % White
         TextPrimary = [0.15, 0.15, 0.15]       % Dark
@@ -170,13 +176,22 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             % Disable buttons during processing
             app.AnalyzeButton.Enable = 'off';
             app.LoadButton.Enable = 'off';
-            app.updateStatus('⏳ Analyzing image...', app.AccentColor);
+            
+            if app.UseDeepLearning
+                app.updateStatus('⏳ Analyzing with CNN (Deep Learning)...', app.DLColor);
+            else
+                app.updateStatus('⏳ Analyzing with SVM (Classical)...', app.AccentColor);
+            end
             drawnow;
             
             try
                 % Run analysis
                 tic;
-                results = analyzeHawkerFood(app.CurrentImage);
+                if app.UseDeepLearning
+                    results = analyzeHawkerFoodDL(app.CurrentImage);
+                else
+                    results = analyzeHawkerFood(app.CurrentImage);
+                end
                 processingTime = toc;
                 app.CurrentResults = results;
                 
@@ -226,9 +241,14 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
                 app.FatLabel.Text = sprintf('Fat: %.1f g', nutrition.fat);
                 app.DailyValueLabel.Text = sprintf('%d%% Daily Value', nutrition.caloriesDV);
                 
-                % Update status
+                % Update status with classifier info
                 app.ProcessingTimeLabel.Text = sprintf('%.2fs', processingTime);
-                app.updateStatus('✓ Analysis complete!', app.SecondaryColor);
+                if app.UseDeepLearning
+                    classifierInfo = ' [CNN]';
+                else
+                    classifierInfo = ' [SVM]';
+                end
+                app.updateStatus(['✓ Analysis complete!' classifierInfo], app.SecondaryColor);
                 
             catch ME
                 uialert(app.UIFigure, ['Error: ' ME.message], 'Analysis Failed');
@@ -392,11 +412,28 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ControlPanel.BackgroundColor = app.CardColor;
             app.ControlPanel.BorderType = 'none';
             
-            app.ControlGrid = uigridlayout(app.ControlPanel, [8, 1]);
-            app.ControlGrid.RowHeight = {50, 50, 50, 30, 80, 30, '1x', 30};
+            app.ControlGrid = uigridlayout(app.ControlPanel, [10, 1]);
+            app.ControlGrid.RowHeight = {25, 35, 50, 50, 50, 30, 80, 30, '1x', 30};
             app.ControlGrid.Padding = [20, 20, 20, 20];
-            app.ControlGrid.RowSpacing = 12;
+            app.ControlGrid.RowSpacing = 10;
             app.ControlGrid.BackgroundColor = app.CardColor;
+            
+            % Classifier Selection Label
+            app.ClassifierLabel = uilabel(app.ControlGrid);
+            app.ClassifierLabel.Text = '🧠 Classification Method';
+            app.ClassifierLabel.FontSize = 11;
+            app.ClassifierLabel.FontWeight = 'bold';
+            app.ClassifierLabel.FontColor = app.TextPrimary;
+            app.ClassifierLabel.Layout.Row = 1;
+            
+            % Classifier Dropdown
+            app.ClassifierDropdown = uidropdown(app.ControlGrid);
+            app.ClassifierDropdown.Items = {'SVM (Classical)', 'CNN (Deep Learning)'};
+            app.ClassifierDropdown.Value = 'SVM (Classical)';
+            app.ClassifierDropdown.FontSize = 12;
+            app.ClassifierDropdown.BackgroundColor = [0.98, 0.98, 0.98];
+            app.ClassifierDropdown.Layout.Row = 2;
+            app.ClassifierDropdown.ValueChangedFcn = @app.ClassifierChanged;
             
             % Load Button
             app.LoadButton = uibutton(app.ControlGrid, 'push');
@@ -405,7 +442,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.LoadButton.FontWeight = 'bold';
             app.LoadButton.BackgroundColor = app.PrimaryColor;
             app.LoadButton.FontColor = 'white';
-            app.LoadButton.Layout.Row = 1;
+            app.LoadButton.Layout.Row = 3;
             app.LoadButton.ButtonPushedFcn = @app.LoadButtonPushed;
             
             % Analyze Button
@@ -415,7 +452,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.AnalyzeButton.FontWeight = 'bold';
             app.AnalyzeButton.BackgroundColor = app.SecondaryColor;
             app.AnalyzeButton.FontColor = 'white';
-            app.AnalyzeButton.Layout.Row = 2;
+            app.AnalyzeButton.Layout.Row = 4;
             app.AnalyzeButton.Enable = 'off';
             app.AnalyzeButton.ButtonPushedFcn = @app.AnalyzeButtonPushed;
             
@@ -425,7 +462,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ResetButton.FontSize = 12;
             app.ResetButton.BackgroundColor = [0.9, 0.9, 0.9];
             app.ResetButton.FontColor = app.TextSecondary;
-            app.ResetButton.Layout.Row = 3;
+            app.ResetButton.Layout.Row = 5;
             app.ResetButton.ButtonPushedFcn = @app.ResetButtonPushed;
             
             % Divider
@@ -433,11 +470,11 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             divider1.Text = '─────── Results ───────';
             divider1.FontColor = [0.7, 0.7, 0.7];
             divider1.HorizontalAlignment = 'center';
-            divider1.Layout.Row = 4;
+            divider1.Layout.Row = 6;
             
             % Results Panel
             app.ResultsPanel = uipanel(app.ControlGrid);
-            app.ResultsPanel.Layout.Row = 5;
+            app.ResultsPanel.Layout.Row = 7;
             app.ResultsPanel.BackgroundColor = [0.98, 0.98, 0.98];
             app.ResultsPanel.BorderType = 'none';
             
@@ -482,11 +519,11 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             divider2.Text = '────── Nutrition ──────';
             divider2.FontColor = [0.7, 0.7, 0.7];
             divider2.HorizontalAlignment = 'center';
-            divider2.Layout.Row = 6;
+            divider2.Layout.Row = 8;
             
             % Nutrition Panel
             app.NutritionPanel = uipanel(app.ControlGrid);
-            app.NutritionPanel.Layout.Row = 7;
+            app.NutritionPanel.Layout.Row = 9;
             app.NutritionPanel.BackgroundColor = app.CardColor;
             app.NutritionPanel.BorderType = 'line';
             app.NutritionPanel.BorderColor = [0.9, 0.9, 0.9];
@@ -552,7 +589,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ProcessingTimeLabel.FontSize = 10;
             app.ProcessingTimeLabel.FontColor = app.TextSecondary;
             app.ProcessingTimeLabel.HorizontalAlignment = 'right';
-            app.ProcessingTimeLabel.Layout.Row = 8;
+            app.ProcessingTimeLabel.Layout.Row = 10;
             
             %% ================ STATUS BAR ================
             app.StatusPanel = uipanel(app.MainGrid);
@@ -580,6 +617,21 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             teamLabel.HorizontalAlignment = 'right';
             teamLabel.Layout.Row = 1;
             teamLabel.Layout.Column = 2;
+        end
+        
+        function ClassifierChanged(app, ~)
+            selectedValue = app.ClassifierDropdown.Value;
+            if contains(selectedValue, 'CNN')
+                app.UseDeepLearning = true;
+                app.AnalyzeButton.BackgroundColor = app.DLColor;
+                app.AnalyzeButton.Text = '🧠  Analyze (CNN)';
+                app.updateStatus('Mode: Deep Learning (CNN)', app.DLColor);
+            else
+                app.UseDeepLearning = false;
+                app.AnalyzeButton.BackgroundColor = app.SecondaryColor;
+                app.AnalyzeButton.Text = '🔍  Analyze Food';
+                app.updateStatus('Mode: Classical (SVM)', app.SecondaryColor);
+            end
         end
     end
 end
