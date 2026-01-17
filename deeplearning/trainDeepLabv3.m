@@ -29,7 +29,7 @@ function net = trainDeepLabv3(datasetPath, options)
     end
     
     %% Setup
-    if nargin < 1
+    if nargin < 1 || isempty(datasetPath)
         projectRoot = fileparts(fileparts(mfilename('fullpath')));
         datasetPath = fullfile(projectRoot, 'dataset', 'train');
     end
@@ -56,7 +56,8 @@ function net = trainDeepLabv3(datasetPath, options)
     
     imds = imageDatastore(datasetPath, ...
         'IncludeSubfolders', true, ...
-        'LabelSource', 'foldernames');
+        'LabelSource', 'foldernames', ...
+        'FileExtensions', {'.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG'});
     
     numImages = numel(imds.Files);
     fprintf('  Found %d images\n', numImages);
@@ -69,20 +70,32 @@ function net = trainDeepLabv3(datasetPath, options)
         mkdir(maskDir);
     end
     
-    for i = 1:min(500, numImages)  % Limit to 500 for training speed
-        img = imread(imds.Files{i});
-        
-        % Use classical segmentation to create mask
-        processedImg = preprocessForMask(img, inputSize(1:2));
-        mask = createPseudoMask(processedImg);
-        
-        % Save mask
-        [~, filename, ~] = fileparts(imds.Files{i});
-        maskFile = fullfile(maskDir, [filename, '_mask.png']);
-        imwrite(uint8(mask) * 255, maskFile);
-        
-        if mod(i, 100) == 0
-            fprintf('    Generated %d/%d masks\n', i, min(500, numImages));
+    validImageFiles = {};
+    
+    % FAST MODE: Process fewer images for demo training
+    numToProcess = min(50, numImages); 
+    
+    for i = 1:numToProcess
+        try
+            img = imread(imds.Files{i});
+            
+            % Use classical segmentation to create mask
+            processedImg = preprocessForMask(img, inputSize(1:2));
+            mask = createPseudoMask(processedImg);
+            
+            % Save mask
+            [~, filename, ~] = fileparts(imds.Files{i});
+            maskFile = fullfile(maskDir, [filename, '_mask.png']);
+            imwrite(uint8(mask) * 255, maskFile);
+            
+            % Add to valid list
+            validImageFiles{end+1} = imds.Files{i};
+            
+            if mod(i, 10) == 0
+                fprintf('    Generated %d/%d masks\n', i, numToProcess);
+            end
+        catch
+            fprintf('    Warning: Skipped corrupt file %s\n', imds.Files{i});
         end
     end
     
@@ -93,8 +106,11 @@ function net = trainDeepLabv3(datasetPath, options)
     pxds = pixelLabelDatastore(maskDir, classNames, labelIDs);
     
     % Update image datastore to match masks
-    imageFiles = imds.Files(1:min(500, numImages));
-    imdsTrain = imageDatastore(imageFiles);
+    % Update image datastore to match masks (using only valid files)
+    if isempty(validImageFiles)
+        error('No valid images found for segmentation training.');
+    end
+    imdsTrain = imageDatastore(validImageFiles);
     
     %% Create combined datastore for training
     combinedDS = combine(imdsTrain, pxds);
@@ -117,7 +133,7 @@ function net = trainDeepLabv3(datasetPath, options)
     %% Training options
     fprintf('\nConfiguring training...\n');
     
-    trainingOptions = trainingOptions('adam', ...
+    trainOpts = trainingOptions('adam', ...
         'MaxEpochs', maxEpochs, ...
         'MiniBatchSize', miniBatchSize, ...
         'InitialLearnRate', initialLearnRate, ...
@@ -141,7 +157,7 @@ function net = trainDeepLabv3(datasetPath, options)
     fprintf('═══════════════════════════════════════════════════════════════\n\n');
     
     tic;
-    [net, trainInfo] = trainNetwork(trainDS, lgraph, trainingOptions);
+    [net, trainInfo] = trainNetwork(trainDS, lgraph, trainOpts);
     trainingTime = toc;
     
     fprintf('\n  Training completed in %.1f seconds\n', trainingTime);
