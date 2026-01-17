@@ -322,8 +322,8 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             headerGrid.BackgroundColor = app.PrimaryColor;
             
             app.TitleLabel = uilabel(headerGrid);
-            app.TitleLabel.Text = '🍲 Malaysian Hawker Food AI';
-            app.TitleLabel.FontSize = 26;
+            app.TitleLabel.Text = '🍲 Malaysian Hawker Food Recognition';
+            app.TitleLabel.FontSize = 24; % Reduced slightly to ensure fit
             app.TitleLabel.FontWeight = 'bold';
             app.TitleLabel.FontColor = 'white';
             app.TitleLabel.Layout.Row = 1;
