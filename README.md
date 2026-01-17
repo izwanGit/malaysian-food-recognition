@@ -55,16 +55,27 @@ An intelligent image processing system that:
 
 ## ✨ Features
 
+### Classical Image Processing
+
 | Feature | Description |
 |---------|-------------|
 | 🖼️ **Image Preprocessing** | Histogram stretching, CLAHE, median/Gaussian/bilateral filtering |
 | 🎨 **Feature Extraction** | **127 features**: Color (108) + Texture (19 including **Smoothness**) |
-| 🤖 **Classification** | Multi-class SVM with RBF kernel, **5-fold cross-validation** |
+| 🤖 **Classification (SVM)** | Multi-class SVM with RBF kernel, **5-fold cross-validation** |
 | 📊 **Evaluation** | Confusion matrix, precision/recall/F1-score per class |
 | ✂️ **Segmentation** | HSV thresholding + morphology + k-means clustering |
 | 📏 **Portion Estimation** | Food-specific reference areas with ratio calculation |
 | 🔢 **Calorie Calculation** | MyFCD database with macronutrient breakdown |
 | 🖥️ **Premium GUI** | Modern UI/UX with color-coded confidence meter |
+
+### Deep Learning (Optional Enhancement)
+
+| Feature | Description |
+|---------|-------------|
+| 🧠 **CNN Classification** | ResNet18 with transfer learning from ImageNet |
+| 🎯 **Semantic Segmentation** | DeepLabv3+ with ResNet18 backbone |
+| 📈 **Model Comparison** | Side-by-side SVM vs CNN accuracy comparison |
+| 🔄 **Data Augmentation** | Rotation, flipping, scaling for robust training |
 
 ---
 
@@ -537,12 +548,25 @@ malaysian-food-recognition/
 │   ├── testSegmentation.m
 │   └── testFullPipeline.m
 │
-├── 📁 dataset/                 # Dataset (not in repo - download separately)
+├── 📁 deeplearning/            # 🧠 Deep Learning Module (Optional)
+│   ├── trainCNNClassifier.m   # ResNet18 transfer learning
+│   ├── classifyFoodCNN.m      # CNN inference
+│   ├── trainDeepLabv3.m       # DeepLabv3+ segmentation training
+│   ├── segmentFoodDL.m        # DL segmentation inference
+│   ├── compareClassifiers.m   # SVM vs CNN comparison
+│   └── visualizeDeepLearning.m # Generate DL figures
+│
+├── 📁 report_figures/          # 📊 Generated Report Figures (34+)
+│   ├── Fig01-Fig29_*.png      # Classical method figures
+│   └── Fig30-Fig34_*.png      # Deep learning figures
+│
+├── 📁 dataset/                 # Dataset (download separately)
 │   ├── train/                 # Training images by class
 │   └── test/                  # Test images by class
 │
 ├── 📁 models/                  # Trained Models
-│   └── foodClassifier.mat     # Saved SVM classifier
+│   ├── foodClassifier.mat     # Saved SVM classifier
+│   └── foodCNN.mat            # Saved CNN model (after training)
 │
 └── 📁 results/                 # Output files
 ```
@@ -653,6 +677,177 @@ Portion Labels:
 | Segmentation IoU | > 0.70 | Intersection over Union |
 | Calorie MAE | < 15% | Mean Absolute Error vs MyFCD |
 | Processing Time | < 1 sec | Per image average |
+
+---
+
+## 🧠 Deep Learning Module
+
+This project supports **optional deep learning** to complement classical image processing methods. The focus remains on image processing, with DL providing comparative baselines.
+
+### Overview
+
+```mermaid
+flowchart LR
+    subgraph CLASSICAL["📐 Classical (Primary)"]
+        C1[Feature Extraction] --> C2[SVM Classifier]
+        C3[HSV + Morphology] --> C4[Segmentation]
+    end
+    
+    subgraph DEEPLEARNING["🧠 Deep Learning (Optional)"]
+        D1[ResNet18] --> D2[CNN Classifier]
+        D3[DeepLabv3+] --> D4[Semantic Segmentation]
+    end
+    
+    INPUT[Input Image] --> CLASSICAL
+    INPUT --> DEEPLEARNING
+    
+    CLASSICAL --> COMPARE[Compare Results]
+    DEEPLEARNING --> COMPARE
+```
+
+### Deep Learning Models
+
+| Task | Model | Backbone | Training | Purpose |
+|------|-------|----------|----------|---------|
+| **Classification** | ResNet18 | ImageNet pretrained | Transfer Learning | Identify food type (7 classes) |
+| **Segmentation** | DeepLabv3+ | ResNet18 | Transfer Learning | Detect food region (binary mask) |
+
+---
+
+### 1. ResNet18 for Classification
+
+**Architecture:**
+```
+Input (224×224×3)
+    │
+    ▼
+┌─────────────────────────────────────────────────────────┐
+│                    ResNet18 Backbone                     │
+│  Conv1 → Res Block 1 → Res Block 2 → Res Block 3 → 4   │
+│         64 filters     128 filters   256 filters  512   │
+└─────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────┐
+│ Global Avg Pool │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ FC Layer (7)    │ ← Modified for 7 food classes
+└────────┬────────┘
+         │
+         ▼
+   Classification Result
+```
+
+**Transfer Learning Process:**
+1. Load pretrained ResNet18 (trained on ImageNet's 1.2M images)
+2. Replace final FC layer (1000 → 7 classes)
+3. Freeze early layers, fine-tune later layers
+4. Train on Malaysian food dataset
+
+**Usage:**
+```matlab
+% Train the CNN
+trainCNNClassifier()
+
+% Classify an image
+[foodClass, confidence] = classifyFoodCNN('nasi_lemak.jpg')
+```
+
+---
+
+### 2. DeepLabv3+ for Segmentation
+
+**Architecture:**
+```
+Input (512×512×3)
+    │
+    ▼
+┌─────────────────────────────────────────────────────────┐
+│                    ENCODER (ResNet18)                    │
+│  Features extracted at multiple scales (1/4, 1/8, 1/16) │
+└─────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────┐
+│                    ASPP MODULE                           │
+│  Atrous Spatial Pyramid Pooling                         │
+│  [1×1 conv] [rate 6] [rate 12] [rate 18] [global pool]  │
+└─────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────┐
+│                    DECODER                               │
+│  Upsample 4× → Concat low-level → Conv → Upsample 4×   │
+└─────────────────────────────────────────────────────────┘
+    │
+    ▼
+Output: Binary Mask (Food vs Background)
+```
+
+**Why DeepLabv3+?**
+- **Multi-scale processing** via ASPP captures objects at different sizes
+- **Sharp boundaries** from combining low-level and high-level features
+- **Efficient** compared to older segmentation networks
+
+**Usage:**
+```matlab
+% Train DeepLabv3+
+trainDeepLabv3()
+
+% Segment an image
+mask = segmentFoodDL('nasi_lemak.jpg')
+```
+
+---
+
+### 3. Classical vs Deep Learning Comparison
+
+| Aspect | Classical (SVM + HSV) | Deep Learning (CNN + DeepLabv3+) |
+|--------|----------------------|----------------------------------|
+| **Features** | Hand-crafted (127) | Auto-learned |
+| **Training Data** | Works with ~100 images | Needs 1000+ images |
+| **Interpretability** | High (explainable features) | Low (black box) |
+| **Processing Speed** | Fast (~0.1s/image) | Slower (~0.5s/image) |
+| **Hardware** | CPU sufficient | GPU recommended |
+| **Accuracy** | Good (85-92%) | Excellent (92-98%) |
+
+**Run Comparison:**
+```matlab
+% Compare SVM vs CNN on test data
+results = compareClassifiers('dataset/test')
+```
+
+---
+
+### 4. Data Augmentation
+
+To improve deep learning robustness, we apply augmentation during training:
+
+| Augmentation | Range | Purpose |
+|--------------|-------|---------|
+| Rotation | ±20° | Handle rotated food plates |
+| Horizontal Flip | 50% probability | Double effective dataset |
+| Scale | 0.9× - 1.1× | Handle zoom variations |
+| Brightness | ±10% | Handle lighting conditions |
+
+---
+
+### 5. Training Requirements
+
+```
+MATLAB Toolboxes Required:
+├── Deep Learning Toolbox
+├── Computer Vision Toolbox
+└── Deep Learning Toolbox Model for ResNet-18 Network
+
+Hardware Recommended:
+├── GPU: NVIDIA with CUDA support (optional, for speed)
+├── RAM: 16GB+
+└── Storage: 5GB for dataset + models
+```
 
 ---
 
