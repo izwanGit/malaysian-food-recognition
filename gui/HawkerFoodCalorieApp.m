@@ -301,7 +301,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             
             %% Main Grid Layout
             app.MainGrid = uigridlayout(app.UIFigure, [3, 2]);
-            app.MainGrid.RowHeight = {80, '1x', 40};
+            app.MainGrid.RowHeight = {120, '1x', 40}; % Increased from 80 to 120
             app.MainGrid.ColumnWidth = {'2x', '1x'};
             app.MainGrid.Padding = [20, 20, 20, 20];
             app.MainGrid.RowSpacing = 15;
@@ -316,9 +316,9 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.HeaderPanel.BorderType = 'none';
             
             headerGrid = uigridlayout(app.HeaderPanel, [2, 2]);
-            headerGrid.RowHeight = {'1x', '1x'};
+            headerGrid.RowHeight = {'2x', '1x'}; % Prioritize Title space
             headerGrid.ColumnWidth = {'1x', 150};
-            headerGrid.Padding = [25, 10, 25, 10];
+            headerGrid.Padding = [25, 15, 25, 15]; % Reduced vertical padding slightly
             headerGrid.BackgroundColor = app.PrimaryColor;
             
             app.TitleLabel = uilabel(headerGrid);
