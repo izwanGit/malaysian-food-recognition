@@ -61,7 +61,7 @@ function visualizeDeepLearning()
     
     % Add labels
     text(0.5, 0.15, 'Input: 224×224×3 → Output: 7 Food Classes', 'HorizontalAlignment', 'center', 'FontSize', 11);
-    text(0.5, 0.85, 'Transfer Learning: Pretrained on ImageNet (1.2M images)', 'HorizontalAlignment', 'center', 'FontSize', 11, 'FontStyle', 'italic');
+    text(0.5, 0.85, 'Transfer Learning: Pretrained on ImageNet (1.2M images)', 'HorizontalAlignment', 'center', 'FontSize', 11);
     
     saveas(f, fullfile(outputDir, sprintf('Fig%02d_ResNet18_Architecture.png', figNum))); figNum = figNum + 1;
     close(f);
