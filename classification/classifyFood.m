@@ -27,13 +27,15 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath, 
         projectRoot = fileparts(baseDir);
         if strcmpi(mode, 'cnn')
             modelPath = fullfile(projectRoot, 'models', 'foodCNN.mat');
+        elseif strcmpi(mode, 'hybrid')
+            modelPath = fullfile(projectRoot, 'models', 'foodClassifier_hybrid.mat');
         else
             modelPath = fullfile(projectRoot, 'models', 'foodClassifier.mat');
         end
     end
     
     %% Load model
-    persistent cachedSVM cachedCNN;
+    persistent cachedSVM cachedCNN cachedHybrid;
     
     if strcmpi(mode, 'cnn')
         % Load CNN model
@@ -48,6 +50,18 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath, 
             cachedCNN.path = modelPath;
         end
         model = cachedCNN;
+    elseif strcmpi(mode, 'hybrid')
+        % Load Hybrid SVM model (trained with deep features)
+        if isempty(cachedHybrid) || ~strcmp(cachedHybrid.path, modelPath)
+            if ~exist(modelPath, 'file')
+                error('classifyFood:ModelNotFound', ...
+                      'Hybrid Model not found: %s\nRun trainClassifier(datasetPath, maxImages, true) first.', modelPath);
+            end
+            loaded = load(modelPath, 'model');
+            cachedHybrid.model = loaded.model;
+            cachedHybrid.path = modelPath;
+        end
+        model = cachedHybrid.model;
     else
         % Load SVM model
         if isempty(cachedSVM) || ~strcmp(cachedSVM.path, modelPath)
@@ -88,9 +102,18 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath, 
         probScores = scores;
         classNames = model.classNames;
         
-    else
-        % --- Classical Machine Learning (SVM) ---
-        features = extractFeatures(processedImg);
+    elseif strcmpi(mode, 'hybrid')
+        % --- Hybrid: SqueezeNet Features + SVM Classifier ---
+        persistent hybridNet hybridInputSize;
+        if isempty(hybridNet)
+            hybridNet = squeezenet;
+            hybridInputSize = hybridNet.Layers(1).InputSize;
+        end
+        imgResized = imresize(img, hybridInputSize(1:2));
+        if size(imgResized, 3) == 1, imgResized = cat(3,imgResized,imgResized,imgResized); end
+        if size(imgResized, 3) == 4, imgResized = imgResized(:,:,1:3); end
+        features = activations(hybridNet, imgResized, 'fire9-concat', 'OutputAs', 'rows');
+        
         normalizedFeatures = (features - model.featureMean) ./ model.featureStd;
         
         [predictedClass, scores] = predict(model.classifier, normalizedFeatures);
@@ -100,17 +123,32 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath, 
         end
         
         % Convert SVM scores to probabilities (Temperature Scaling)
-        if all(scores <= 0)
-            temperature = 0.12; 
-            scaledScores = scores / temperature;
-            probScores = exp(scaledScores - max(scaledScores));
-            probScores = probScores / sum(probScores);
-        else
-            temperature = 0.12;
-            scaledScores = scores / temperature;
-            probScores = exp(scaledScores - max(scaledScores));
-            probScores = probScores / sum(probScores);
+        temperature = 0.12; 
+        scaledScores = scores / temperature;
+        probScores = exp(scaledScores - max(scaledScores));
+        probScores = probScores / sum(probScores);
+        
+        confidence = max(probScores);
+        classNames = model.classNames;
+        
+    else
+        % --- Classical Machine Learning (SVM) ---
+        % Hand-Crafted Features (Color + Texture + HOG)
+        features = extractFeatures(processedImg);
+        
+        normalizedFeatures = (features - model.featureMean) ./ model.featureStd;
+        
+        [predictedClass, scores] = predict(model.classifier, normalizedFeatures);
+        
+        if iscell(predictedClass)
+            predictedClass = predictedClass{1};
         end
+        
+        % Convert SVM scores to probabilities (Temperature Scaling)
+        temperature = 0.12; 
+        scaledScores = scores / temperature;
+        probScores = exp(scaledScores - max(scaledScores));
+        probScores = probScores / sum(probScores);
         
         confidence = max(probScores);
         classNames = model.classNames;

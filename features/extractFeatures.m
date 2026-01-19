@@ -42,11 +42,11 @@ function [features, featureNames] = extractFeatures(img)
     [textureFeatures, textureNames] = extractTextureFeatures(img);
     
     %% Extract HOG features (Shape)
-    % Critical for distinguishing shapes (e.g. Satay sticks vs Popiah rolls)
-    % CellSize [32 32] is optimized for speed and general shape capture
+    % Optimized for A++ accuracy on food shapes
     grayImg = rgb2gray(img);
-    resizedGray = imresize(grayImg, [256 256]); % Standardize for HOG
-    [hogFeatures, visualization] = extractHOGFeatures(resizedGray, 'CellSize', [32 32]);
+    % We already resized in preprocessImage to 512x512
+    % Let's use a slightly more granular HOG for food textures
+    [hogFeatures, hogVisualization] = extractHOGFeatures(grayImg, 'CellSize', [16 16]);
     
     % Generate HOG feature names
     hogNames = arrayfun(@(x) sprintf('HOG_%d', x), 1:length(hogFeatures), 'UniformOutput', false);
