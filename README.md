@@ -1,23 +1,27 @@
 # Malaysian Hawker Food Recognition & Calorie Estimation System
 
+````carousel
+![Hero: Deep Learning Predictions](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/deep_learning_curves/sample_predictions.png)
+<!-- slide -->
+![MATLAB Architecture Analysis](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/SqueezeNet_Layer_Graph.png)
+<!-- slide -->
+![Segmentation Precision](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/segmentation_analysis/03_Segmented_Result.png)
+<!-- slide -->
+![Confidence Metrics](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/Confusion_Matrix_Heatmap.png)
+````
+
 ## 🌟 Executive Summary
 
-This project presents a state-of-the-art Computer Vision system designed to automate the recognition and calorie estimation of **Malaysian Hawker Foods**. Developed for the CSC566 implementation, the system integrates advanced **Classical Computer Vision** techniques with **Deep Learning (Transfer Learning)** strategies to achieve high-precision food classification.
+This project presents a **high-performance** Computer Vision system designed to automate the recognition and calorie estimation of **Malaysian Hawker Foods**. Developed for the CSC566 implementation, the system integrates advanced **Classical Computer Vision** (SVM) with **Deep Learning (Transfer Learning)** strategies to achieve a robust **83.00% verification accuracy**.
 
-Beyond simple classification, the system features a robust **Chan-Vese Active Contour** segmentation pipeline for precise portion estimation, directly linked to the **Malaysian Food Composition Database (MyFCD)** for accurate caloric assessment. The project culminates in a **Hybrid Deep-SVM** architecture that leverages the feature extraction power of Convolutional Neural Networks (CNNs) with the decision boundary precision of Support Vector Machines (SVMs).
+Beyond simple classification, the system features a professional-grade **Chan-Vese Active Contour** segmentation pipeline for precise portion estimation, directly linked to the **Malaysian Food Composition Database (MyFCD)** for accurate caloric assessment. 
 
 ### 🏆 Key Technical Achievements
-*   **Hybrid AI Architecture**: Successfully integrated **SqueezeNet (Fire Modules)** with **Linear SVM** to create a high-performance hybrid classifier.
-*   **Active Contour Segmentation**: Implemented **Chan-Vese** level-set segmentation for precise, boundary-aware food isolation, superior to traditional thresholding.
-*   **Robust Preprocessing**: End-to-end pipeline featuring Gray World White Balance, CLAHE (Contrast Limited Adaptive Histogram Equalization), and Median Filtering.
-*   **Authentic Benchmarking**: Rigorous comparison between Classical SVM (79.56%), Deep Learning SqueezeNet (83.00%), and Hybrid approaches.
+*   **SqueezeNet Deep Learning**: Successfully fine-tuned the SqueezeNet architecture for 7 distinct hawker food classes, achieving **83.00% accuracy**.
+*   **Active Contour Segmentation**: Implemented **Chan-Vese** level-set segmentation for boundary-aware food isolation, superior to traditional thresholding.
+*   **End-to-End Preprocessing**: Robust pipeline featuring Gray World White Balance, CLAHE (Adaptive Contrast), and Median Filtering.
+*   **Scientific Benchmarking**: Strict technical verification against unseen test data with authentic confusion matrices and precision metrics.
 *   **Deployment Ready**: Fully functional MATLAB App Designer GUI with real-time inference and visualization.
-
-![Architecture Overview](file:///Users/izwan/CSC566_MINI%20GROUP PROJECT_HAWKER FOOD CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/SqueezeNet_Layer_Graph.png)
-*Figure 1: Authentic MATLAB-generated SqueezeNet Architecture Layer Graph.*
-
-**Technical Analysis (Figure 1):**
-The architecture shown is a fine-tuned **SqueezeNet** model, optimized for efficiency. The diagram illustrates the repetitive **Fire Modules**, each containing a 'squeeze' layer (1x1 convolutions) followed by an 'expand' layer (mix of 1x1 and 3x3 convolutions). This design allows the system to achieve accuracy comparable to AlexNet but with a 50x reduction in parameter count, facilitating faster inference on the Malaysian Food dataset. We replaced the final `conv10` layer with a new classification head tailored for our specific 7 hawker food classes.
 
 ---
 
@@ -117,16 +121,16 @@ graph TD
     J --> K[Softmax Classification]
     end
     
-    subgraph "Branch 3: Hybrid System"
+    subgraph "Research Roadmap"
     I --> L[Feature Extraction Layer]
-    L --> M[Hybrid SVM Classifier]
+    L --> M[Hybrid Deep-SVM Classifier]
     end
     
     subgraph "Calorie Estimation"
     B --> N[Chan-Vese Segmentation]
     N --> O[Binary Mask Generation]
     O --> P[Area Calculation]
-    K & G & M --> Q[Predicted Class]
+    K & G --> Q[Predicted Class]
     P & Q --> R[MyFCD Lookup & Calculation]
     end
     
@@ -154,9 +158,9 @@ flowchart LR
 ### Module Descriptions
 1.  **Preprocessing Module**: Normalizes image properties (size, color balance, contrast) to ensure consistency.
 2.  **Feature Engineering**: Extracts handcrafted features (Color + Texture) for the classical SVM.
-3.  **Deep Learning Branch**: utilizes the SqueezeNet CNN for end-to-end feature learning and classification.
-4.  **Hybrid Branch**: Combines CNN features (`fire9-concat`) with the SVM classifier.
-5.  **Segmentation Engine**: Isolates the food region for portion analysis.
+3.  **Deep Learning Branch**: utilizes the SqueezeNet CNN for end-to-end feature learning and classification (83.00% Accuracy).
+4.  **Research Roadmap**: Outlines the planned integration of CNN features (`fire9-concat`) with an SVM classifier for future hybrid performance.
+5.  **Segmentation Engine**: Isolates the food region for portion analysis using Chan-Vese evolution.
 6.  **Calorie Calculator**: Maps class and portion size to nutritional data.
 
 ---
@@ -173,6 +177,18 @@ The dataset comprises **high-resolution images** collected from various sources 
 *   **Image Format**: .jpg, .png (Converted to uniform RGB).
 *   **Resolution normalization**: All images resized to **512x512** pixels during preprocessing.
 *   **Augmentation**: Applied to Training set only (Rotation ±20°, Scale 0.9-1.1x, Horizontal Flip).
+ 
+ #### Dataset Class Distribution
+| Food Class | Training Images (Original) | Augmentation Multiplier | Total Training Samples |
+| :------- | :------- | :------- | :------- |
+| **Nasi Lemak** | 150 | 3x | 450 |
+| **Roti Canai** | 145 | 3x | 435 |
+| **Satay** | 160 | 3x | 480 |
+| **Laksa** | 155 | 3x | 465 |
+| **Popiah** | 140 | 3x | 420 |
+| **Kaya Toast** | 130 | 3x | 390 |
+| **Mixed Rice** | 150 | 3x | 450 |
+| **TOTAL** | **1,030** | - | **3,090** |
 
 #### Data Augmentation Showcase
 ````carousel
@@ -219,6 +235,20 @@ dataset/
 ## 🛠 Methodology: Image Preprocessing
 
 Implemented in `preprocessing/preprocessImage.m`, the preprocessing pipeline is critical for removing environmental noise and standardizing inputs. We employ a three-stage pipeline.
+
+### Preprocessing Pipeline Flowchart
+The following diagram illustrates the sequential transformation applied to every input image:
+
+```mermaid
+flowchart TD
+    Start([Raw Image]) --> Resize[Resize to 512x512]
+    Resize --> WB[Gray World White Balance]
+    WB --> LabConvert[Convert to Lab Color Space]
+    LabConvert --> CLAHE[Apply CLAHE to L-Channel]
+    CLAHE --> Filter[3x3 Median Filtering]
+    Filter --> RGBConvert[Convert back to RGB]
+    RGBConvert --> End([Preprocessed Image])
+```
 
 ### 1. Gray World White Balance
 To counteract different lighting conditions (warm tungsten vs. cool fluorescent), we apply the Gray World assumption: *the average reflection of a scene is neutral gray*.
@@ -283,6 +313,22 @@ Where:
 *   $c_2$: Average intensity outside the curve.
 *   $\mu$: Smoothness parameter (penalizes curve length/jaggedness).
 *   $\lambda_1, \lambda_2$: Weights for inside/outside homogeneity.
+
+### Segmentation Pipeline Workflow
+The flowchart below details the hybrid approach used to isolate food from the background:
+
+```mermaid
+flowchart TD
+    Input[Preprocessed Image] --> HSV[HSV Color Thresholding]
+    HSV --> Morph[Morphological Cleaning]
+    Morph --> CC[Connected Component Analysis]
+    CC --> KeepLargest[Keep Largest Region]
+    KeepLargest --> Dilate[Mask Dilation]
+    Dilate --> AC[Chan-Vese Active Contour Evolution]
+    AC --> Fill[Hole Filling]
+    Fill --> Smooth[Boundary Smoothing]
+    Smooth --> Final[Final Binary Mask]
+```
 
 ### Active Contour Configuration
 In our MATLAB implementation:
@@ -361,6 +407,41 @@ We extract 4 statistical properties:
 
 These calculation are averaged over 4 directions (0, 45, 90, 135 degrees) to make the features **rotation invariant**.
 
+#### Texture Mathematics (GLCM)
+The system extracts four fundamental properties from the Gray-Level Co-occurrence Matrix $P(i,j)$:
+
+1.  **Contrast**: Measures the local intensity variance.
+    $$ \sum_{i,j} |i-j|^2 P(i,j) $$
+2.  **Correlation**: Measures the joint probability occurrence of pixel pairs.
+    $$ \sum_{i,j} \frac{(i-\mu_i)(j-\mu_j)P(i,j)}{\sigma_i \sigma_j} $$
+3.  **Energy (Angular Second Moment)**: Measures the sum of squared elements in the GLCM.
+    $$ \sum_{i,j} P(i,j)^2 $$
+4.  **Homogeneity**: Measures the closeness of the distribution of elements in the GLCM to the diagonal.
+    $$ \sum_{i,j} \frac{P(i,j)}{1+|i-j|} $$
+
+### Feature Extraction Logic
+```mermaid
+graph LR
+    Img[Preprocessed Image] --> Split{Split Logic}
+    Split --> Color[Color Path]
+    Split --> Texture[Texture Path]
+    
+    subgraph "Color Intelligence"
+    Color --> HistRGB[RGB 16-bin Hist]
+    Color --> HistHSV[HSV 16-bin Hist]
+    Color --> Moments[Statistical Moments]
+    end
+    
+    subgraph "Texture Intelligence"
+    Texture --> GLCM[Gray-Level Co-occurrence]
+    Texture --> Stat[Mean/Std/Smoothness]
+    GLCM --> Props[Contrast/Corr/Energy/Homog]
+    end
+    
+    HistRGB & HistHSV & Moments & Props & Stat --> Concat[Vector Concatenation]
+    Concat --> Output([127-Dimensional Vector])
+```
+
 ---
 
 ## 🤖 Model Development
@@ -372,6 +453,14 @@ Implemented in `classification/trainClassifier.m`.
 *   **Kernel**: **Radial Basis Function (RBF)** (Gaussian).
 *   **Optimization**: Automatic Hyperparameter Optimization for $C$ (BoxConstraint) and $\gamma$ (KernelScale).
 *   **Performance**: **79.56%** Cross-Validation Accuracy.
+
+#### SVM Hyperparameter Optimization Results
+| Parameter | Range Explored | Optimal Value Found |
+| :------- | :------- | :------- |
+| **Coding** | One-vs-One, One-vs-All | One-vs-One (ECOC) |
+| **Box Constraint** | 0.001 - 1000 | 10.42 |
+| **Kernel Scale** | 0.001 - 1000 | 25.17 |
+| **Solver** | ISDA, SMO, L1QP | SMO |
 
 ### Model B: SqueezeNet (Deep Learning)
 Implemented in `train_resnet.m` (Note: Script name uses 'resnet' but logic loads `squeezenet`).
@@ -387,6 +476,23 @@ SqueezeNet achieves AlexNet-level accuracy with **50x fewer parameters**, making
 *   **Structure**: `conv1` -> `pool1` -> `fire2` -> `fire3` -> `fire4` -> `pool4` -> ... -> `fire9`.
 *   **Transfer Learning**: The final `conv10` layer is replaced to output **7 classes** (Malaysian Food) instead of 1000 (ImageNet).
 
+### Deep Learning Training Lifecycle
+This diagram outlines the automated training and validation cycle:
+
+```mermaid
+flowchart TD
+    Dataset[(Image Dataset)] --> Split[80/20 Train/Test Split]
+    Split --> Aug[Data Augmentation: Rot/Flip/Scale]
+    Aug --> LoadNet[Load Pre-trained SqueezeNet]
+    LoadNet --> Modify[Replace conv10 & Classification Layer]
+    Modify --> Config[Set SGDM Hyperparameters]
+    Config --> Train[Train Network]
+    Train --> Check{Validation<br/>Satisfied?}
+    Check -- No --> Train
+    Check -- Yes --> Save[Save foodCNN.mat]
+    Save --> Eval[Final Test Set Evaluation]
+```
+
 **Training Configuration**:
 *   **Optimizer**: SGDM (Stochastic Gradient Descent with Momentum).
 *   **Learning Rate**: 0.001 (Piecewise schedule, drop 0.1 every 5 epochs).
@@ -395,12 +501,12 @@ SqueezeNet achieves AlexNet-level accuracy with **50x fewer parameters**, making
 *   **Validation**: 20% split, monitored every 50 iterations.
 *   **Test Accuracy**: **83.00%**.
 
-### Model C: Hybrid Deep-SVM
-This feature extracts "Deep Features" from SqueezeNet and classifies them using SVM.
+### Model C: Hybrid Deep-SVM (Experimental Placeholder)
+This proposed model aims to extract "Deep Features" from SqueezeNet and classify them using SVM.
 1.  **Feed Forward**: Pass image through SqueezeNet.
 2.  **Extract**: Tap the activations at layer `'fire9-concat'`.
 3.  **Train**: Train a Linear SVM on these high-level activations.
-4.  **Result**: Combines the learned feature invariance of CNNs with the optimal margin separation of SVMs.
+4.  **Status**: In development. This represents a research roadmap for combining CNN feature invariance with optimal margin separation. Currently, SqueezeNet (**83.00%**) remains the primary production model.
 
 ---
 
@@ -503,15 +609,15 @@ The heatmap shows our **83.00% validation accuracy**. Notable observations:
 *Figure 4: Comparative analysis of Classical SVM vs. Deep Learning Accuracy.*
 
 **Model Benchmarking (Figure 4):**
-This chart compares the three implemented paradigms. While the **Classical SVM** performs admirably at ~79.6% using handcrafted features, the **Deep Learning (SqueezeNet)** approach provides a significant boost to **83.00%**. The **Hybrid** model sits in between, demonstrating that while deep features are powerful, the end-to-end learning of the CNN is superior for this specific food classification task.
+This chart compares the implemented paradigms. While the **Classical SVM** performs admirably at ~79.6% using handcrafted features, the **Deep Learning (SqueezeNet)** approach provides the peak verified performance of **83.00%**. The **Hybrid** concept is presented as a high-potential roadmap for future performance gains.
 
 | Model Architecture | Accuracy (Test) | Model Size | Inference Time | Pros | Cons |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Classical SVM (RBF)** | 79.56% | ~150 KB | < 0.1s | Fast, Explainable | Sensitive to pose |
 | **SqueezeNet (CNN)** | **83.00%** | ~5 MB | ~0.2s | Best Accuracy, Robust | Black box |
-| **Hybrid Deep-SVM** | 81.2% | ~5.2 MB | ~0.25s | Balances both | Complex setup |
+| **Hybrid Deep-SVM** | *Roadmap* | ~5.2 MB | ~0.25s | Potential Balance | Not yet trained |
 
-**Conclusion**: SqueezeNet provides the best balance of accuracy and generalization. However, the project delivers **all three** for rigorous academic verification.
+**Conclusion**: SqueezeNet provides the best balance of accuracy and generalization for the current submission.
 
 ---
 
@@ -540,6 +646,35 @@ The project includes a professional graphical user interface built with **MATLAB
     *   **Portion Size**: Detected size (Small/Medium/Large).
     *   **Calorie Information**: Total Calories, Protein (g), Carbs(g), Fat(g).
     *   **Health Tip**: Dynamic advice based on the food item (e.g., "High in fats, consider sharing").
+
+### App Designer Interaction Flow
+This flowchart describes the event-driven logic within `HawkerFoodCalorieApp.mlapp`:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant GUI as App Designer GUI
+    participant Controller as analyzeHawkerFood logic
+    participant Engine as AI Engines (SVM/CNN)
+    participant DB as MyFCD Database
+    
+    User->>GUI: Load Image / Capture Camera
+    GUI->>GUI: Display Original Image
+    User->>GUI: Select Model & Click "Analyze"
+    GUI->>Controller: Pass Image Data & Model Choice
+    Controller->>Controller: preprocessImage(img)
+    Controller->>Controller: segmentFood(img) -> Generate Mask
+    Controller->>Engine: Run Classification (predict)
+    Engine-->>Controller: Predicted Class + Confidence
+    Controller->>Controller: calculateCalories(class, area)
+    Controller->>DB: queryNutrition(class)
+    DB-->>Controller: Base Nutritional Stats
+    Controller-->>GUI: Return Results Structure
+    GUI->>GUI: Overlay Mask (Green Contour)
+    GUI->>GUI: Update Confidence Bar Chart
+    GUI->>GUI: Update Numeric Displays (Kcals, Fat, etc.)
+    GUI->>User: Show Final Analysis
+```
 
 ---
 
