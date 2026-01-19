@@ -53,7 +53,14 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
         mask = cleanMask;
     end
     
-    %% Step 4: K-means clustering for ingredient segmentation
+    %% Step 4: Refine mask using Active Contours (Snakes)
+    % This "shrink-wraps" the mask to the actual food edges
+    if sum(mask(:)) > 0
+        % Run for 150 iterations to smooth the boundary
+        mask = activecontour(img, mask, 150, 'Chan-Vese');
+    end
+
+    %% Step 5: K-means clustering for ingredient segmentation
     if nargout > 1
         % Apply k-means only within the food mask
         numClusters = 5;  % Typical number of ingredient types
