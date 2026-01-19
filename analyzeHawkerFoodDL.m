@@ -46,7 +46,7 @@ function results = analyzeHawkerFoodDL(img)
     end
     
     %% Step 5: Portion Estimation
-    [portionRatio, portionLabel, foodArea] = estimatePortion(mask, foodClass);
+    [portionRatio, portionLabel, foodArea] = estimatePortion(mask, foodClass, processedImg);
     
     %% Step 6: Calorie Calculation
     [calories, nutrition] = calculateCalories(foodClass, portionRatio);

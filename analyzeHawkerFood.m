@@ -82,7 +82,7 @@ function results = analyzeHawkerFood(input, mode)
     
     %% Step 5: Estimate portion size
     fprintf('Step 5: Estimating portion size...\n');
-    [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodClass);
+    [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodClass, processedImage);
     fprintf('  Portion ratio: %.2f\n', portionRatio);
     fprintf('  Portion label: %s\n\n', portionLabel);
     

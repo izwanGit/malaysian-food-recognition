@@ -4,18 +4,20 @@
 % Syntax:
 %   portionRatio = estimatePortion(mask)
 %   portionRatio = estimatePortion(mask, foodClass)
-%   [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodClass)
+%   portionRatio = estimatePortion(mask, foodClass, img)
+%   [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodClass, img)
 %
 % Inputs:
 %   mask      - Binary mask of food region
 %   foodClass - Food class name for class-specific reference (optional)
+%   img       - RGB image for color density analysis (optional, A++ feature)
 %
 % Outputs:
 %   portionRatio - Ratio relative to standard serving (1.0 = standard)
 %   portionLabel - 'Small', 'Medium', 'Large', or 'Extra Large'
 %   areaPixels   - Actual food area in pixels
 
-function [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodClass)
+function [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodClass, img)
     %% Input validation
     if isempty(mask)
         portionRatio = 0;
@@ -24,8 +26,11 @@ function [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodCl
         return;
     end
     
-    if nargin < 2
+    if nargin < 2 || isempty(foodClass)
         foodClass = 'general';
+    end
+    if nargin < 3
+        img = [];
     end
     
     %% Calculate food area
@@ -61,6 +66,48 @@ function [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodCl
         end
     catch
         % If regionprops fails, continue without adjustment
+    end
+    %% A++ ENHANCEMENT: Color-based density analysis for complex foods
+    % Analyzes color composition to estimate calorie density
+    % High curry/sambal (red/orange) = higher calories
+    % High vegetables (green) = lower calories
+    complexFoods = {'nasi_lemak', 'mixed_rice', 'laksa'};
+    if ~isempty(img) && any(strcmpi(foodClass, complexFoods))
+        try
+            % Convert to HSV for color analysis
+            if isa(img, 'uint8')
+                img = im2double(img);
+            end
+            hsvImg = rgb2hsv(img);
+            H = hsvImg(:,:,1);
+            S = hsvImg(:,:,2);
+            
+            % Get hue values within food mask only
+            foodH = H(mask);
+            foodS = S(mask);
+            totalPixels = numel(foodH);
+            
+            if totalPixels > 100
+                % Red/Orange pixels (Sambal, Curry) - High Calorie
+                redOrangeMask = (foodH < 0.1 | foodH > 0.9) & foodS > 0.25;
+                redRatio = sum(redOrangeMask) / totalPixels;
+                
+                % Green pixels (Vegetables) - Low Calorie  
+                greenMask = (foodH >= 0.2 & foodH <= 0.45) & foodS > 0.2;
+                greenRatio = sum(greenMask) / totalPixels;
+                
+                % Calculate color density factor (0.9 to 1.2 range)
+                colorDensity = 1.0;
+                colorDensity = colorDensity + (redRatio * 0.2);   % +20% for curry/sambal
+                colorDensity = colorDensity - (greenRatio * 0.1); % -10% for vegetables
+                colorDensity = max(0.9, min(1.2, colorDensity));
+                
+                % Apply color density adjustment
+                portionRatio = portionRatio * colorDensity;
+            end
+        catch
+            % Color analysis failed, continue without
+        end
     end
     
     % Clamp to reasonable range
