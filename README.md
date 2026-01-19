@@ -133,6 +133,24 @@ graph TD
     R --> S[Final Output: Class + Calories + Nutrients]
 ```
 
+### System Logic Flowchart
+The following logic diagram explains the decision-making process for the calorie estimation module:
+
+```mermaid
+flowchart LR
+    Start([Inference Start]) --> Classify[Identify Food Class]
+    Start --> Segment[Generate Binary Mask]
+    Segment --> CalcArea[Calculate Food Pixel Area]
+    CalcArea --> Compare{Compare with Ref Area}
+    Compare -- "Area > 1.2x" --> Large[Portion: Large]
+    Compare -- "0.8x - 1.2x" --> Medium[Portion: Medium]
+    Compare -- "Area < 0.8x" --> Small[Portion: Small]
+    Classify --> Lookup[MyFCD Database Lookup]
+    Large & Medium & Small --> Combine[Apply Multiplier to Base Kcals]
+    Lookup --> Combine
+    Combine --> Display[Show Final Nutritional Breakdown]
+```
+
 ### Module Descriptions
 1.  **Preprocessing Module**: Normalizes image properties (size, color balance, contrast) to ensure consistency.
 2.  **Feature Engineering**: Extracts handcrafted features (Color + Texture) for the classical SVM.
@@ -155,6 +173,18 @@ The dataset comprises **high-resolution images** collected from various sources 
 *   **Image Format**: .jpg, .png (Converted to uniform RGB).
 *   **Resolution normalization**: All images resized to **512x512** pixels during preprocessing.
 *   **Augmentation**: Applied to Training set only (Rotation ±20°, Scale 0.9-1.1x, Horizontal Flip).
+
+#### Data Augmentation Showcase
+````carousel
+![Original](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/01_Original.png)
+<!-- slide -->
+![Augmented 1](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/02_Augmented_1.png)
+<!-- slide -->
+![Augmented 2](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/03_Augmented_2.png)
+<!-- slide -->
+![Augmented 3](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/04_Augmented_3.png)
+````
+*Figure 8: Visual demonstration of data augmentation techniques used to expand the training dataset 3-fold.*
 
 ### Class Descriptions
 | Class Name | Description | Visual Challenges |
@@ -217,6 +247,19 @@ This step ensures that "white" rice in Nasi Lemak looks white regardless of the 
 ### 3. Noise Reduction
 A **Median Filter** (kernel size **3x3**) is applied to the L-channel to remove "salt-and-pepper" noise. Median filtering is preferred over Gaussian blurring because it **preserves edges**, which is crucial for the subsequent segmentation step.
 
+### 4. Color Channel Analysis
+To justify our feature extraction strategy, we analyzed the discriminative power of different color spaces.
+
+#### Color Decomposition
+````carousel
+![RGB Channels](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/color_analysis/RGB_R_Channel.png)
+<!-- slide -->
+![HSV Channels](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/color_analysis/HSV_H_Hue.png)
+````
+*Figure 5: Decomposition of food images into RGB and HSV channels for feature importance study.*
+
+**Technical Insight**: While RGB remains the standard, the **Hue** and **Saturation** channels in the HSV space proved significantly more robust for segmenting "Nasi Lemak" rice from white plates, as the intensity (Value/Luminance) is often nearly identical, but the saturation levels differ.
+
 ---
 
 ## 🔬 Methodology: Segmentation (Chan-Vese)
@@ -261,7 +304,7 @@ This creates a biologically characteristic "shrink-wrap" effect around the food 
 <!-- slide -->
 ![Step 4: Active Contour Result](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/04_Filled_Cleared.png)
 <!-- slide -->
-![Step 6: Final Segmented Food](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/06_Final_Segmented.png)
+![Step 5: Final Segmented Food](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/06_Final_Segmented.png)
 ````
 *Figure 2: Step-by-step evolution of the Chan-Vese Active Contour segmentation pipeline.*
 
@@ -272,6 +315,16 @@ The carousel above demonstrates the robustness of the **Chan-Vese** approach:
 3.  **Dilated Mask**: The initial rough estimate is expanded to serve as the 'outside' boundary for the contour.
 4.  **Active Contour Result**: After 200 iterations, the curve has "shrunk-wrapped" around the food, effectively ignoring the white plate background through energy minimization.
 5.  **Final Segmented**: The binary mask is applied back to the original image for portion calculation.
+
+### K-Means Ingredient Segmentation
+Beyond global segmentation, the system employs **K-Means Clustering** inside the detected food region to identify sub-ingredients (e.g., differentiating meat from rice). This allows the system to handle complex dishes with multiple distinct components.
+
+![K-Means Clusters](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/kmeans_analysis/Cluster_1.png)
+*Figure 6: Color-based K-Means clustering (K=5) used for ingredient-level segmentation analysis.*
+
+---
+
+---
 
 ---
 
@@ -377,6 +430,16 @@ $$ P_r = \frac{A_{seg}}{A_{ref}} $$
 $$ Calories_{est} = Calories_{base} \times P_r $$
 
 This logic is applied dynamically in the GUI.
+
+#### Portion & Caloric Results
+````carousel
+![Portion Estimation](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/portion_calorie_analysis/Fig26_PortionEstimation.png)
+<!-- slide -->
+![Calorie Breakdown](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/portion_calorie_analysis/Fig29_NasiLemakPie.png)
+````
+*Figure 7: Portions identified via pixel area ratio and corresponding nutritional breakdown (Nasi Lemak example).*
+
+---
 
 ---
 
