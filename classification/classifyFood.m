@@ -4,39 +4,63 @@
 % Syntax:
 %   [predictedClass, confidence] = classifyFood(img)
 %   [predictedClass, confidence, allScores] = classifyFood(img)
-%   [predictedClass, confidence, allScores] = classifyFood(img, modelPath)
+%   [predictedClass, confidence, allScores] = classifyFood(img, modelPath, mode)
 %
 % Inputs:
 %   img       - RGB image or path to image file
 %   modelPath - Path to trained model file (optional)
+%   mode      - 'svm' (default) or 'cnn'
 %
 % Outputs:
 %   predictedClass - Predicted food class name (string)
 %   confidence     - Confidence score (0-1)
 %   allScores      - Scores for all classes
 
-function [predictedClass, confidence, allScores] = classifyFood(img, modelPath)
-    %% Load model
-    persistent cachedModel;
+function [predictedClass, confidence, allScores] = classifyFood(img, modelPath, mode)
+    %% Default parameters
+    if nargin < 3
+        mode = 'svm';
+    end
     
-    if nargin < 2
+    if nargin < 2 || isempty(modelPath)
         baseDir = fileparts(mfilename('fullpath'));
         projectRoot = fileparts(baseDir);
-        modelPath = fullfile(projectRoot, 'models', 'foodClassifier.mat');
-    end
-    
-    % Load model if not cached or different path
-    if isempty(cachedModel) || ~strcmp(cachedModel.path, modelPath)
-        if ~exist(modelPath, 'file')
-            error('classifyFood:ModelNotFound', ...
-                  'Model file not found: %s\nRun trainClassifier() first.', modelPath);
+        if strcmpi(mode, 'cnn')
+            modelPath = fullfile(projectRoot, 'models', 'foodCNN.mat');
+        else
+            modelPath = fullfile(projectRoot, 'models', 'foodClassifier.mat');
         end
-        loaded = load(modelPath, 'model');
-        cachedModel.model = loaded.model;
-        cachedModel.path = modelPath;
     end
     
-    model = cachedModel.model;
+    %% Load model
+    persistent cachedSVM cachedCNN;
+    
+    if strcmpi(mode, 'cnn')
+        % Load CNN model
+        if isempty(cachedCNN) || ~strcmp(cachedCNN.path, modelPath)
+            if ~exist(modelPath, 'file')
+                error('classifyFood:ModelNotFound', ...
+                      'CNN Model not found: %s\nRun trainCNN() first.', modelPath);
+            end
+            loaded = load(modelPath, 'trainedNet', 'classNames');
+            cachedCNN.net = loaded.trainedNet;
+            cachedCNN.classNames = loaded.classNames;
+            cachedCNN.path = modelPath;
+        end
+        model = cachedCNN;
+    else
+        % Load SVM model
+        if isempty(cachedSVM) || ~strcmp(cachedSVM.path, modelPath)
+            if ~exist(modelPath, 'file')
+                error('classifyFood:ModelNotFound', ...
+                      'SVM Model not found: %s\nRun trainClassifier() first.', modelPath);
+            end
+            loaded = load(modelPath, 'model');
+            cachedSVM.model = loaded.model;
+            cachedSVM.path = modelPath;
+        end
+        model = cachedSVM.model;
+    end
     
     %% Load and preprocess image
     if ischar(img) || isstring(img)
@@ -46,59 +70,57 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath)
         img = imread(img);
     end
     
-    % Preprocess
+    % Preprocess is common for both
     processedImg = preprocessImage(img);
     
-    %% Extract features
-    features = extractFeatures(processedImg);
-    
-    %% Normalize features using training statistics
-    normalizedFeatures = (features - model.featureMean) ./ model.featureStd;
-    
-    %% Predict class
-    [predictedClass, scores] = predict(model.classifier, normalizedFeatures);
-    
-    % Handle cell output
-    if iscell(predictedClass)
-        predictedClass = predictedClass{1};
-    end
-    
-    %% Calculate confidence
-    % For SVM, scores are negative loss values - convert to probabilities
-    % Using softmax-like transformation
-    if all(scores <= 0)
-        % Negative loss scores - apply softmax with temperature scaling
-        % Technique: Temperature Scaling (Guo et al., "On Calibration of Modern Neural Networks")
-        % Used here to calibrate SVM scores into interpretable probabilities.
-        temperature = 0.12;  % Lower temperature (<1) sharpens the probability distribution
-        scaledScores = scores / temperature;
-        probScores = exp(scaledScores - max(scaledScores));  % Numerical stability
-        probScores = probScores / sum(probScores);
+    %% Classification Logic
+    if strcmpi(mode, 'cnn')
+        % --- Deep Learning (CNN) ---
+        inputSize = model.net.Layers(1).InputSize;
+        resizedImg = imresize(processedImg, inputSize(1:2));
+        
+        [predictedLabel, scores] = classify(model.net, resizedImg);
+        
+        predictedClass = char(predictedLabel);
+        confidence = max(scores);
+        
+        % Normalize scores if needed (already softmax from CNN)
+        probScores = scores;
+        classNames = model.classNames;
+        
     else
-        % Positive scores - apply softmax with temperature
-        temperature = 0.12;  % Lowered from 0.3 to make A++ confidence
-        scaledScores = scores / temperature;
-        probScores = exp(scaledScores - max(scaledScores));
-        probScores = probScores / sum(probScores);
-    end
-    
-    % Find predicted class score
-    classIdx = find(strcmp(model.classNames, predictedClass), 1);
-    if ~isempty(classIdx)
-        confidence = probScores(classIdx);
-    else
+        % --- Classical Machine Learning (SVM) ---
+        features = extractFeatures(processedImg);
+        normalizedFeatures = (features - model.featureMean) ./ model.featureStd;
+        
+        [predictedClass, scores] = predict(model.classifier, normalizedFeatures);
+        
+        if iscell(predictedClass)
+            predictedClass = predictedClass{1};
+        end
+        
+        % Convert SVM scores to probabilities (Temperature Scaling)
+        if all(scores <= 0)
+            temperature = 0.12; 
+            scaledScores = scores / temperature;
+            probScores = exp(scaledScores - max(scaledScores));
+            probScores = probScores / sum(probScores);
+        else
+            temperature = 0.12;
+            scaledScores = scores / temperature;
+            probScores = exp(scaledScores - max(scaledScores));
+            probScores = probScores / sum(probScores);
+        end
+        
         confidence = max(probScores);
+        classNames = model.classNames;
     end
     
-    % Ensure confidence is in valid range
-    confidence = max(0, min(1, confidence));
-    
-    %% Return all scores if requested
+    %% Return all scores
     if nargout > 2
         allScores = struct();
-        for i = 1:length(model.classNames)
-            % Clean field name (replace spaces/special chars)
-            fieldName = matlab.lang.makeValidName(model.classNames{i});
+        for i = 1:length(classNames)
+            fieldName = matlab.lang.makeValidName(classNames{i});
             allScores.(fieldName) = probScores(i);
         end
     end

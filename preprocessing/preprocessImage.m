@@ -54,7 +54,7 @@ function [processedImg, originalSize] = preprocessImage(img, targetSize)
     %% Step 2: Convert to double for processing
     doubleImg = im2double(resizedImg);
     
-    %% Step 3: A++ Color Correction & Enhancement
+    %% Step 3: Advanced Color Correction & Enhancement
     try
         % 3a. Automatic White Balance (Gray World Assumption)
         % Corrects for indoor lighting (common in hawker centers)

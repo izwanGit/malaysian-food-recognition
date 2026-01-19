@@ -189,11 +189,13 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             try
                 % Run analysis
                 tic;
+                mode = 'svm';
                 if app.UseDeepLearning
-                    results = analyzeHawkerFoodDL(app.CurrentImage);
-                else
-                    results = analyzeHawkerFood(app.CurrentImage);
+                    mode = 'cnn';
                 end
+                
+                % Now using unified classification function with mode switch
+                results = analyzeHawkerFood(app.CurrentImage, mode);
                 processingTime = toc;
                 app.CurrentResults = results;
                 

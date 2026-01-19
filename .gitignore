@@ -31,6 +31,7 @@ codegen/
 # Large data files
 *.mat
 !models/foodClassifier.mat
+!models/foodCNN.mat
 
 # Dataset (too large for git - download via kagglehub)
 dataset/train/*

@@ -41,11 +41,21 @@ function [features, featureNames] = extractFeatures(img)
     %% Extract texture features
     [textureFeatures, textureNames] = extractTextureFeatures(img);
     
-    %% Combine all features (color + texture = 127 features)
-    features = [colorFeatures, textureFeatures];
+    %% Extract HOG features (Shape)
+    % Critical for distinguishing shapes (e.g. Satay sticks vs Popiah rolls)
+    % CellSize [32 32] is optimized for speed and general shape capture
+    grayImg = rgb2gray(img);
+    resizedGray = imresize(grayImg, [256 256]); % Standardize for HOG
+    [hogFeatures, visualization] = extractHOGFeatures(resizedGray, 'CellSize', [32 32]);
+    
+    % Generate HOG feature names
+    hogNames = arrayfun(@(x) sprintf('HOG_%d', x), 1:length(hogFeatures), 'UniformOutput', false);
+
+    %% Combine all features (color + texture + HOG)
+    features = [colorFeatures, textureFeatures, hogFeatures];
     
     %% Combine feature names
     if nargout > 1
-        featureNames = [colorNames, textureNames];
+        featureNames = [colorNames, textureNames, hogNames];
     end
 end

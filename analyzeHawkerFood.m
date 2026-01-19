@@ -13,6 +13,7 @@
 %             .originalImage   - Original input image
 %             .processedImage  - Pre-processed image
 %             .foodClass       - Predicted food class
+%             .mode            - Classifier mode used ('svm' or 'cnn')
 %             .confidence      - Classification confidence
 %             .mask            - Food region mask
 %             .segmentedImage  - Segmentation visualization
@@ -23,15 +24,21 @@
 %             .processingTime  - Total processing time (seconds)
 %
 % Example:
-%   results = analyzeHawkerFood('path/to/nasi_lemak.jpg');
+%   results = analyzeHawkerFood('path/to/nasi_lemak.jpg', 'svm');
+%   results = analyzeHawkerFood('path/to/nasi_lemak.jpg', 'cnn');
 %   fprintf('Food: %s (%.1f%% confident)\n', results.foodClass, results.confidence*100);
 %   fprintf('Calories: %d kcal (%s portion)\n', results.calories, results.portionLabel);
 
-function results = analyzeHawkerFood(input)
+function results = analyzeHawkerFood(input, mode)
     tic;  % Start timing
     
+    if nargin < 2
+        mode = 'svm';
+    end
+    
     %% Step 1: Load image
-    fprintf('=== Malaysian Hawker Food Analysis ===\n\n');
+    fprintf('=== Malaysian Hawker Food Analysis ===\n');
+    fprintf('Mode: %s\n\n', upper(mode));
     fprintf('Step 1: Loading image...\n');
     
     if ischar(input) || isstring(input)
@@ -54,9 +61,9 @@ function results = analyzeHawkerFood(input)
     fprintf('  Applied: Resize, histogram stretch, noise filter\n\n');
     
     %% Step 3: Classify food type
-    fprintf('Step 3: Classifying food type...\n');
+    fprintf('Step 3: Classifying food type (%s)...\n', upper(mode));
     try
-        [foodClass, confidence, allScores] = classifyFood(processedImage);
+        [foodClass, confidence, allScores] = classifyFood(processedImage, [], mode);
         fprintf('  Prediction: %s\n', strrep(foodClass, '_', ' '));
         fprintf('  Confidence: %.1f%%\n\n', confidence * 100);
     catch ME

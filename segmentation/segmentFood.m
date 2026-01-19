@@ -58,7 +58,7 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
     %% Step 4: Refine mask using Active Contours (Snakes)
     % This "shrink-wraps" the mask to the actual food edges
     if sum(mask(:)) > 0
-        % A++ OPTIMIZATION:
+        % ADVANCED OPTIMIZATION:
         % 1. Dilate first: We expand the mask slightly so the "Snake" starts 
         %    outside the food boundary and shrinks tightly onto the edges. 
         %    This prevents the mask from getting stuck inside the food.

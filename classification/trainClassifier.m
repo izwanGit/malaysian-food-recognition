@@ -80,15 +80,12 @@ function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation
         rng(42);  % Reproducible random selection
         imageFiles = imageFiles(randperm(length(imageFiles), numImages));
         
-        fprintf('      Loading %d images...\n', numImages);
-        
-        % Calculate expected features (original + augmented)
-        augMultiplier = 1;
-        if useAugmentation
-            augMultiplier = 3;  % Original + 2 augmented versions
-        end
-        classFeatures = zeros(numImages * augMultiplier, 127);  % Fixed 127 features
+        % Load valid images and extract features
+        % Dynamic feature size detection to prevent mismatch errors
+        featureSize = 0;
         validCount = 0;
+        
+        fprintf('      Loading %d images...\\n', numImages);
         
         for i = 1:numImages
             try
@@ -101,12 +98,23 @@ function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation
                 % Extract features from original
                 [features, names] = extractFeatures(processedImg);
                 
+                % Initialize storage on first successful extraction
+                if featureSize == 0
+                    featureSize = length(features);
+                    classFeatures = zeros(numImages * augMultiplier, featureSize);
+                    if isempty(featureNames)
+                        featureNames = names;
+                    end
+                end
+                
+                % Verify feature size
+                if length(features) ~= featureSize
+                    warning('Feature size mismatch for %s. Expected %d, got %d', imageFiles(i).name, featureSize, length(features));
+                    continue;
+                end
+                
                 validCount = validCount + 1;
                 classFeatures(validCount, :) = features;
-                
-                if isempty(featureNames)
-                    featureNames = names;
-                end
                 
                 % Apply augmentation
                 if useAugmentation
@@ -115,8 +123,10 @@ function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation
                         augProcessed = preprocessImage(augImg);
                         augFeatures = extractFeatures(augProcessed);
                         
-                        validCount = validCount + 1;
-                        classFeatures(validCount, :) = augFeatures;
+                        if length(augFeatures) == featureSize
+                            validCount = validCount + 1;
+                            classFeatures(validCount, :) = augFeatures;
+                        end
                     end
                 end
                 
@@ -131,17 +141,23 @@ function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation
         end
         
         % Trim to valid features only
-        classFeatures = classFeatures(1:validCount, :);
-        classLabels = repmat({className}, validCount, 1);
-        samplesPerClass(c) = validCount;
-        
-        % Append to all features
-        allFeatures = [allFeatures; classFeatures]; %#ok<AGROW>
-        allLabels = [allLabels; classLabels]; %#ok<AGROW>
+        if validCount > 0
+            classFeatures = classFeatures(1:validCount, :);
+            classLabels = repmat({className}, validCount, 1);
+            samplesPerClass(c) = validCount;
+            
+            % Append to all features
+            allFeatures = [allFeatures; classFeatures]; %#ok<AGROW>
+            allLabels = [allLabels; classLabels]; %#ok<AGROW>
+        end
         
         fprintf('      Completed: %d valid images\n\n', validCount);
     end
     
+    if isempty(allFeatures)
+        error('No valid features extracted from any class. Check feature extraction logic.');
+    end
+
     fprintf('Total training samples: %d\n', size(allFeatures, 1));
     fprintf('Feature dimensions: %d\n\n', size(allFeatures, 2));
     
@@ -185,17 +201,18 @@ function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation
         yTest = allLabels(testIdx);
         
         % Train SVM with improved parameters
+        % BoxConstraint=10 strikes a balance between maximizing the margin
+        % and minimizing misclassification (Soft Margin SVM).
         svmTemplate = templateSVM('KernelFunction', 'rbf', ...
                                   'KernelScale', 'auto', ...
                                   'BoxConstraint', 10, ...  % Regularization parameter (C)
-                                  % BoxConstraint=10 strikes a balance between maximizing the margin
-                                  % and minimizing misclassification (Soft Margin SVM).
                                   'Standardize', false);
         
+        % Coding: One-vs-All (OVA) strategy for Multi-Class
+        % Reduces the problem to N binary classifiers (One class vs Rest).
         cvClassifier = fitcecoc(XTrain, yTrain, ...
                                 'Learners', svmTemplate, ...
-                                'Coding', 'onevsall', ... % One-vs-All (OVA) strategy for Multi-Class
-                                % Reduces the problem to N binary classifiers (One class vs Rest).
+                                'Coding', 'onevsall', ... 
                                 'ClassNames', classNames);
         
         % Predict
