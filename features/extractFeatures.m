@@ -41,21 +41,11 @@ function [features, featureNames] = extractFeatures(img)
     %% Extract texture features
     [textureFeatures, textureNames] = extractTextureFeatures(img);
     
-    %% Extract HOG features (Shape)
-    % Optimized for A++ accuracy on food shapes
-    grayImg = rgb2gray(img);
-    % We already resized in preprocessImage to 512x512
-    % Let's use a slightly more granular HOG for food textures
-    [hogFeatures, hogVisualization] = extractHOGFeatures(grayImg, 'CellSize', [16 16]);
-    
-    % Generate HOG feature names
-    hogNames = arrayfun(@(x) sprintf('HOG_%d', x), 1:length(hogFeatures), 'UniformOutput', false);
-
-    %% Combine all features (color + texture + HOG)
-    features = [colorFeatures, textureFeatures, hogFeatures];
+    %% Combine all features (color + texture = 127 features)
+    features = [colorFeatures, textureFeatures];
     
     %% Combine feature names
     if nargout > 1
-        featureNames = [colorNames, textureNames, hogNames];
+        featureNames = [colorNames, textureNames];
     end
 end

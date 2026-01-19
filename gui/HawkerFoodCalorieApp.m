@@ -64,7 +64,6 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
         CurrentResults
         ProjectPath
         UseDeepLearning = false    % Toggle for DL classification
-        ClassifierMode = 'svm'     % 'svm', 'cnn', or 'hybrid'
         
         % Colors - Premium Palette
         PrimaryColor = [0.0, 0.48, 1.0]        % Apple Blue (Modern/Clean)
@@ -180,9 +179,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.AnalyzeButton.Enable = 'off';
             app.LoadButton.Enable = 'off';
             
-            if app.ClassifierMode == "hybrid"
-                app.updateStatus('⏳ Analyzing with Hybrid (Deep-SVM)...', [0.55, 0.27, 0.68]);
-            elseif app.ClassifierMode == "cnn"
+            if app.UseDeepLearning
                 app.updateStatus('⏳ Analyzing with CNN (Deep Learning)...', app.DLColor);
             else
                 app.updateStatus('⏳ Analyzing with SVM (Classical)...', app.AccentColor);
@@ -192,10 +189,11 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             try
                 % Run analysis
                 tic;
-                mode = app.ClassifierMode; % 'svm', 'cnn', or 'hybrid'
-                
-                % Now using unified classification function with mode switch
-                results = analyzeHawkerFood(app.CurrentImage, mode);
+                if app.UseDeepLearning
+                    results = analyzeHawkerFoodDL(app.CurrentImage);
+                else
+                    results = analyzeHawkerFood(app.CurrentImage);
+                end
                 processingTime = toc;
                 app.CurrentResults = results;
                 
@@ -438,8 +436,8 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             
             % Classifier Dropdown
             app.ClassifierDropdown = uidropdown(app.ControlGrid);
-            app.ClassifierDropdown.Items = {'Classic ML (SVM)', 'Deep Learning (CNN)', 'Hybrid (Deep-SVM)'};
-            app.ClassifierDropdown.Value = 'Deep Learning (CNN)';
+            app.ClassifierDropdown.Items = {'Classic ML (SVM)', 'Deep Learning (CNN)'};
+            app.ClassifierDropdown.Value = 'Classic ML (SVM)';
             app.ClassifierDropdown.FontSize = 13;
             app.ClassifierDropdown.FontWeight = 'bold';
             app.ClassifierDropdown.BackgroundColor = [1, 1, 1];
@@ -632,23 +630,15 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
         
         function ClassifierChanged(app, ~, ~)
             selectedValue = app.ClassifierDropdown.Value;
-            if contains(selectedValue, 'Hybrid')
-                app.ClassifierMode = 'hybrid';
-                app.UseDeepLearning = false;
-                app.AnalyzeButton.BackgroundColor = [0.55, 0.27, 0.68]; % Purple for Hybrid
-                app.AnalyzeButton.Text = '🔗  Analyze (Hybrid)';
-                app.updateStatus('Mode: Hybrid (Deep-SVM)', [0.55, 0.27, 0.68]);
-            elseif contains(selectedValue, 'CNN')
-                app.ClassifierMode = 'cnn';
+            if contains(selectedValue, 'CNN')
                 app.UseDeepLearning = true;
                 app.AnalyzeButton.BackgroundColor = app.DLColor;
                 app.AnalyzeButton.Text = '🧠  Analyze (CNN)';
                 app.updateStatus('Mode: Deep Learning (CNN)', app.DLColor);
             else
-                app.ClassifierMode = 'svm';
                 app.UseDeepLearning = false;
                 app.AnalyzeButton.BackgroundColor = app.SecondaryColor;
-                app.AnalyzeButton.Text = '🔍  Analyze (SVM)';
+                app.AnalyzeButton.Text = '🔍  Analyze Food';
                 app.updateStatus('Mode: Classical (SVM)', app.SecondaryColor);
             end
         end

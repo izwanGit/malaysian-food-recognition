@@ -54,31 +54,12 @@ function [processedImg, originalSize] = preprocessImage(img, targetSize)
     %% Step 2: Convert to double for processing
     doubleImg = im2double(resizedImg);
     
-    %% Step 3: Advanced Color Correction & Enhancement
-    try
-        % 3a. Automatic White Balance (Gray World Assumption)
-        % Corrects for indoor lighting (common in hawker centers)
-        illum = illumgray(doubleImg);
-        wbImg = chromadapt(doubleImg, illum, 'ColorSpace', 'linear-rgb');
-    catch
-        wbImg = doubleImg; % Fallback
-    end
+    %% Step 3: Apply histogram stretching
+    stretchedImg = histogramStretch(doubleImg);
     
-    % 3b. Contrast Enhancement (CLAHE in Lab Space)
-    % Enhances local details without amplifying noise in flat regions
-    labImg = rgb2lab(wbImg);
-    L = labImg(:,:,1) / 100;
-    L = adapthisteq(L, 'NumTiles', [8 8], 'ClipLimit', 0.005);
-    labImg(:,:,1) = L * 100;
-    enhancedImg = lab2rgb(labImg);
-    
-    %% Step 4: Noise Reduction & Sharpening
-    % 4a. Guided Filter (Edge-preserving smoothing) - better than median
-    denoisedImg = imguidedfilter(enhancedImg);
-    
-    % 4b. Subtle Sharpening (Makes edges crisp for Segmentation/SVM)
-    sharpImg = imsharpen(denoisedImg, 'Radius', 1, 'Amount', 0.8);
+    %% Step 4: Apply noise reduction
+    filteredImg = noiseFilter(stretchedImg, 'median', 3);
     
     %% Step 5: Convert back to uint8
-    processedImg = im2uint8(sharpImg);
+    processedImg = im2uint8(filteredImg);
 end
