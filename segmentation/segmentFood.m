@@ -26,6 +26,8 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
     
     %% Step 1: HSV-based food region detection
     % Isolate food regions based on color (typically non-white backgrounds)
+    % HSV (Hue-Saturation-Value) color space is used as it separates chroma 
+    % from intensity, making it more robust to lighting variations than RGB.
     hsvMask = hsvThreshold(img);
     
     %% Step 2: Apply morphological operations to clean the mask
@@ -57,6 +59,10 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
     % This "shrink-wraps" the mask to the actual food edges
     if sum(mask(:)) > 0
         % Run for 150 iterations to smooth the boundary
+        % Algorithm: Chan-Vese Active Contours (Region-based energy minimization)
+        % Reference: T. F. Chan and L. A. Vese, "Active contours without edges," 
+        % IEEE Transactions on Image Processing, vol. 10, no. 2, pp. 266-277, 2001.
+        % This method is robust to weak edges and noise, unlike classic Snakes.
         mask = activecontour(img, mask, 150, 'Chan-Vese');
         
         % Fill any holes inside the food region for a "Complete" solid mask

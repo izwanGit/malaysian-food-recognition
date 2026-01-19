@@ -187,12 +187,15 @@ function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation
         % Train SVM with improved parameters
         svmTemplate = templateSVM('KernelFunction', 'rbf', ...
                                   'KernelScale', 'auto', ...
-                                  'BoxConstraint', 10, ...  % Original working value
+                                  'BoxConstraint', 10, ...  % Regularization parameter (C)
+                                  % BoxConstraint=10 strikes a balance between maximizing the margin
+                                  % and minimizing misclassification (Soft Margin SVM).
                                   'Standardize', false);
         
         cvClassifier = fitcecoc(XTrain, yTrain, ...
                                 'Learners', svmTemplate, ...
-                                'Coding', 'onevsall', ...
+                                'Coding', 'onevsall', ... % One-vs-All (OVA) strategy for Multi-Class
+                                % Reduces the problem to N binary classifiers (One class vs Rest).
                                 'ClassNames', classNames);
         
         % Predict

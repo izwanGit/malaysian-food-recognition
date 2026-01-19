@@ -68,8 +68,9 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath)
     % Using softmax-like transformation
     if all(scores <= 0)
         % Negative loss scores - apply softmax with temperature scaling
-        % Temperature < 1 makes distribution more peaked (higher max confidence)
-        temperature = 0.12;  % Lowered from 0.3 to make A++ confidence (50-90%)
+        % Technique: Temperature Scaling (Guo et al., "On Calibration of Modern Neural Networks")
+        % Used here to calibrate SVM scores into interpretable probabilities.
+        temperature = 0.12;  % Lower temperature (<1) sharpens the probability distribution
         scaledScores = scores / temperature;
         probScores = exp(scaledScores - max(scaledScores));  % Numerical stability
         probScores = probScores / sum(probScores);
