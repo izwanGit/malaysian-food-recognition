@@ -63,7 +63,7 @@ function results = analyzeHawkerFood(input, mode)
     %% Step 3: Classify food type
     fprintf('Step 3: Classifying food type (%s)...\n', upper(mode));
     try
-        [foodClass, confidence, allScores] = classifyFood(processedImage, [], mode);
+        [foodClass, confidence, allScores] = classifyFood(processedImage);
         fprintf('  Prediction: %s\n', strrep(foodClass, '_', ' '));
         fprintf('  Confidence: %.1f%%\n\n', confidence * 100);
     catch ME

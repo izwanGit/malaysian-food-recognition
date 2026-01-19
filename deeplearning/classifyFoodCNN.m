@@ -26,8 +26,15 @@ function [foodClass, confidence, allScores] = classifyFoodCNN(img)
         end
         
         fprintf('Loading CNN model...\n');
-        loaded = load(modelPath, 'cnnModel');
-        cnnModel = loaded.cnnModel;
+        loaded = load(modelPath);
+        
+        % Build cnnModel struct from loaded variables
+        cnnModel = struct();
+        cnnModel.net = loaded.trainedNet;
+        cnnModel.classNames = loaded.classNames;
+        cnnModel.valAccuracy = loaded.accuracy;
+        cnnModel.inputSize = cnnModel.net.Layers(1).InputSize;
+        
         fprintf('  Model loaded (%.2f%% validation accuracy)\n', cnnModel.valAccuracy * 100);
     end
     

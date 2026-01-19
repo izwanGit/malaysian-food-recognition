@@ -34,12 +34,8 @@ function results = analyzeHawkerFoodDL(img)
         [foodClass, confidence] = classifyFood(processedImg);
     end
     
-    %% Step 3: Segmentation (try DL, fallback to classical)
-    try
-        [mask, ~] = segmentFoodDL(processedImg);
-    catch
-        mask = segmentFood(processedImg, foodClass);
-    end
+    %% Step 3: Segmentation (use classical - it's reliable)
+    [mask, ~, ~] = segmentFood(processedImg);
     
     %% Step 4: Create segmented image
     segmentedImg = processedImg;
@@ -53,7 +49,7 @@ function results = analyzeHawkerFoodDL(img)
     [portionRatio, portionLabel, foodArea] = estimatePortion(mask, foodClass);
     
     %% Step 6: Calorie Calculation
-    nutrition = calculateCalories(foodClass, portionRatio);
+    [calories, nutrition] = calculateCalories(foodClass, portionRatio);
     
     %% Package results
     results = struct();
@@ -66,7 +62,7 @@ function results = analyzeHawkerFoodDL(img)
     results.portionRatio = portionRatio;
     results.portionLabel = portionLabel;
     results.foodArea = foodArea;
-    results.calories = nutrition.calories;
+    results.calories = calories;
     results.nutrition = nutrition;
     results.classifierType = 'CNN';
 end
