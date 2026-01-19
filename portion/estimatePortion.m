@@ -37,6 +37,32 @@ function [portionRatio, portionLabel, areaPixels] = estimatePortion(mask, foodCl
     %% Calculate portion ratio
     portionRatio = areaPixels / referenceArea;
     
+    %% Apply shape-based density adjustment (A++ Enhancement)
+    % Compact, solid masks indicate denser food portions
+    % Scattered, fragmented masks indicate lighter portions
+    try
+        stats = regionprops(mask, 'Solidity', 'Extent', 'Perimeter', 'Area');
+        if ~isempty(stats)
+            % Average solidity (how filled vs hollow the shape is)
+            avgSolidity = mean([stats.Solidity]);
+            % Extent (how much of bounding box is filled)
+            avgExtent = mean([stats.Extent]);
+            
+            % Compactness factor: higher = denser food, lower = scattered/light
+            % Solidity: 1.0 = solid filled shape, <0.5 = lots of holes
+            % Extent: 1.0 = fills bounding box, <0.5 = sparse
+            compactnessFactor = (avgSolidity * 0.6 + avgExtent * 0.4);
+            
+            % Map compactness to density multiplier (0.85 to 1.15 range)
+            densityMultiplier = 0.85 + (compactnessFactor * 0.30);
+            
+            % Apply density adjustment
+            portionRatio = portionRatio * densityMultiplier;
+        end
+    catch
+        % If regionprops fails, continue without adjustment
+    end
+    
     % Clamp to reasonable range
     portionRatio = max(0.1, min(2.5, portionRatio));
     
