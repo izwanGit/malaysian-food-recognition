@@ -58,6 +58,7 @@ function labeledRegions = kmeansSegment(img, mask, numClusters)
     
     %% Apply k-means clustering
     maxIterations = 100;
+    maxIterations = 500; % Increased from 100 as per instruction
     replicates = 3;  % Multiple runs for robustness
     
     try

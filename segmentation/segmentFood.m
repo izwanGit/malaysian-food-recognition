@@ -58,6 +58,9 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
     if sum(mask(:)) > 0
         % Run for 150 iterations to smooth the boundary
         mask = activecontour(img, mask, 150, 'Chan-Vese');
+        
+        % Fill any holes inside the food region for a "Complete" solid mask
+        mask = imfill(mask, 'holes');
     end
 
     %% Step 5: K-means clustering for ingredient segmentation
