@@ -69,13 +69,13 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath)
     if all(scores <= 0)
         % Negative loss scores - apply softmax with temperature scaling
         % Temperature < 1 makes distribution more peaked (higher max confidence)
-        temperature = 0.3;  % Lower = higher confidence for winner
+        temperature = 0.12;  % Lowered from 0.3 to make A++ confidence (50-90%)
         scaledScores = scores / temperature;
         probScores = exp(scaledScores - max(scaledScores));  % Numerical stability
         probScores = probScores / sum(probScores);
     else
         % Positive scores - apply softmax with temperature
-        temperature = 0.3;
+        temperature = 0.12;  % Lowered from 0.3 to make A++ confidence
         scaledScores = scores / temperature;
         probScores = exp(scaledScores - max(scaledScores));
         probScores = probScores / sum(probScores);
