@@ -1,14 +1,7 @@
 # Malaysian Hawker Food Recognition & Calorie Estimation System
 
-````carousel
-![Hero: Deep Learning Predictions](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/deep_learning_curves/sample_predictions.png)
-<!-- slide -->
-![MATLAB Architecture Analysis](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/SqueezeNet_Layer_Graph.png)
-<!-- slide -->
-![Segmentation Precision](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/segmentation_analysis/03_Segmented_Result.png)
-<!-- slide -->
-![Confidence Metrics](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/Confusion_Matrix_Heatmap.png)
-````
+![Hero: Deep Learning Predictions](./final_report_figures/extra_visuals/deep_learning_curves/sample_predictions.png)
+*Figure 0: Scientific Multi-class Predictions and Confidence Heatmap.*
 
 ## 🌟 Executive Summary
 
@@ -110,15 +103,15 @@ graph TD
     subgraph "Branch 1: Feature Engineering"
     C --> D[Color Histogram Extraction]
     C --> E[GLCM Texture Analysis]
-    D & E --> F[Feature Concatenation (127-D Vector)]
+    D & E --> F["Feature Concatenation (127-D Vector)"]
     F --> G[SVM Classifier]
     end
     
     subgraph "Branch 2: Deep Learning"
-    C --> H[SqueezeNet Architecture]
-    H --> I[Fire Modules 1-9]
-    I --> J[Global Avg Pooling]
-    J --> K[Softmax Classification]
+    C --> H["SqueezeNet Architecture"]
+    H --> I["Fire Modules 1-9"]
+    I --> J["Global Avg Pooling"]
+    J --> K["Softmax Classification"]
     end
     
     subgraph "Research Roadmap"
@@ -142,17 +135,17 @@ The following logic diagram explains the decision-making process for the calorie
 
 ```mermaid
 flowchart LR
-    Start([Inference Start]) --> Classify[Identify Food Class]
-    Start --> Segment[Generate Binary Mask]
-    Segment --> CalcArea[Calculate Food Pixel Area]
-    CalcArea --> Compare{Compare with Ref Area}
-    Compare -- "Area > 1.2x" --> Large[Portion: Large]
-    Compare -- "0.8x - 1.2x" --> Medium[Portion: Medium]
-    Compare -- "Area < 0.8x" --> Small[Portion: Small]
-    Classify --> Lookup[MyFCD Database Lookup]
-    Large & Medium & Small --> Combine[Apply Multiplier to Base Kcals]
+    Start(["Inference Start"]) --> Classify["Identify Food Class"]
+    Start --> Segment["Generate Binary Mask"]
+    Segment --> CalcArea["Calculate Food Pixel Area"]
+    CalcArea --> Compare{"Compare with Ref Area"}
+    Compare -- "Area > 1.2x" --> Large["Portion: Large"]
+    Compare -- "0.8x - 1.2x" --> Medium["Portion: Medium"]
+    Compare -- "Area < 0.8x" --> Small["Portion: Small"]
+    Classify --> Lookup["MyFCD Database Lookup"]
+    Large & Medium & Small --> Combine["Apply Multiplier to Base Kcals"]
     Lookup --> Combine
-    Combine --> Display[Show Final Nutritional Breakdown]
+    Combine --> Display["Show Final Nutritional Breakdown"]
 ```
 
 ### Module Descriptions
@@ -191,16 +184,8 @@ The dataset comprises **high-resolution images** collected from various sources 
 | **TOTAL** | **1,030** | - | **3,090** |
 
 #### Data Augmentation Showcase
-````carousel
-![Original](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/01_Original.png)
-<!-- slide -->
-![Augmented 1](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/02_Augmented_1.png)
-<!-- slide -->
-![Augmented 2](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/03_Augmented_2.png)
-<!-- slide -->
-![Augmented 3](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/augmentation_showcase/04_Augmented_3.png)
-````
-*Figure 8: Visual demonstration of data augmentation techniques used to expand the training dataset 3-fold.*
+![Original](./final_report_figures/augmentation_showcase/01_Original.png) ![Aug1](./final_report_figures/augmentation_showcase/02_Augmented_1.png) ![Aug2](./final_report_figures/augmentation_showcase/03_Augmented_2.png) ![Aug3](./final_report_figures/augmentation_showcase/04_Augmented_3.png)
+*Figure 8: Visual demonstration of data augmentation (Original, Rotation, Scale, Reflection) used to expand the training dataset 3-fold.*
 
 ### Class Descriptions
 | Class Name | Description | Visual Challenges |
@@ -241,13 +226,13 @@ The following diagram illustrates the sequential transformation applied to every
 
 ```mermaid
 flowchart TD
-    Start([Raw Image]) --> Resize[Resize to 512x512]
-    Resize --> WB[Gray World White Balance]
-    WB --> LabConvert[Convert to Lab Color Space]
-    LabConvert --> CLAHE[Apply CLAHE to L-Channel]
-    CLAHE --> Filter[3x3 Median Filtering]
-    Filter --> RGBConvert[Convert back to RGB]
-    RGBConvert --> End([Preprocessed Image])
+    Start(["Raw Image"]) --> Resize[Resize to 512x512]
+    Resize --> WB["Gray World White Balance"]
+    WB --> LabConvert["Convert to Lab Color Space"]
+    LabConvert --> CLAHE["Apply CLAHE to L-Channel"]
+    CLAHE --> Filter["3x3 Median Filtering"]
+    Filter --> RGBConvert["Convert back to RGB"]
+    RGBConvert --> End(["Preprocessed Image"])
 ```
 
 ### 1. Gray World White Balance
@@ -281,11 +266,7 @@ A **Median Filter** (kernel size **3x3**) is applied to the L-channel to remove 
 To justify our feature extraction strategy, we analyzed the discriminative power of different color spaces.
 
 #### Color Decomposition
-````carousel
-![RGB Channels](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/color_analysis/RGB_R_Channel.png)
-<!-- slide -->
-![HSV Channels](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/color_analysis/HSV_H_Hue.png)
-````
+![RGB](./final_report_figures/color_analysis/RGB_R_Channel.png) ![HSV](./final_report_figures/color_analysis/HSV_H_Hue.png)
 *Figure 5: Decomposition of food images into RGB and HSV channels for feature importance study.*
 
 **Technical Insight**: While RGB remains the standard, the **Hue** and **Saturation** channels in the HSV space proved significantly more robust for segmenting "Nasi Lemak" rice from white plates, as the intensity (Value/Luminance) is often nearly identical, but the saturation levels differ.
@@ -319,15 +300,15 @@ The flowchart below details the hybrid approach used to isolate food from the ba
 
 ```mermaid
 flowchart TD
-    Input[Preprocessed Image] --> HSV[HSV Color Thresholding]
-    HSV --> Morph[Morphological Cleaning]
-    Morph --> CC[Connected Component Analysis]
-    CC --> KeepLargest[Keep Largest Region]
-    KeepLargest --> Dilate[Mask Dilation]
-    Dilate --> AC[Chan-Vese Active Contour Evolution]
-    AC --> Fill[Hole Filling]
-    Fill --> Smooth[Boundary Smoothing]
-    Smooth --> Final[Final Binary Mask]
+    Input["Preprocessed Image"] --> HSV["HSV Color Thresholding"]
+    HSV --> Morph["Morphological Cleaning"]
+    Morph --> CC["Connected Component Analysis"]
+    CC --> KeepLargest["Keep Largest Region"]
+    KeepLargest --> Dilate["Mask Dilation"]
+    Dilate --> AC["Chan-Vese Active Contour Evolution"]
+    AC --> Fill["Hole Filling"]
+    Fill --> Smooth["Boundary Smoothing"]
+    Smooth --> Final["Final Binary Mask"]
 ```
 
 ### Active Contour Configuration
@@ -341,18 +322,8 @@ In our MATLAB implementation:
 This creates a biologically characteristic "shrink-wrap" effect around the food items.
 
 #### Segmentation Pipeline Visualized
-````carousel
-![Step 1: Original Image](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/01_Original.png)
-<!-- slide -->
-![Step 2: Edge Detection](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/02_Sobel_Edge.png)
-<!-- slide -->
-![Step 3: Initial Mask Expansion](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/03_Dilated_Mask.png)
-<!-- slide -->
-![Step 4: Active Contour Result](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/04_Filled_Cleared.png)
-<!-- slide -->
-![Step 5: Final Segmented Food](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/table1_segmentation/06_Final_Segmented.png)
-````
-*Figure 2: Step-by-step evolution of the Chan-Vese Active Contour segmentation pipeline.*
+![Original](./final_report_figures/table1_segmentation/01_Original.png) ![Edge](./final_report_figures/table1_segmentation/02_Sobel_Edge.png) ![Mask](./final_report_figures/table1_segmentation/03_Dilated_Mask.png) ![Final](./final_report_figures/table1_segmentation/06_Final_Segmented.png)
+*Figure 2: Evolution of the Chan-Vese Active Contour segmentation pipeline (Input, Edge, Initial Mask, Result).*
 
 **Algorithm Walkthrough (Figure 2):**
 The carousel above demonstrates the robustness of the **Chan-Vese** approach:
@@ -365,7 +336,7 @@ The carousel above demonstrates the robustness of the **Chan-Vese** approach:
 ### K-Means Ingredient Segmentation
 Beyond global segmentation, the system employs **K-Means Clustering** inside the detected food region to identify sub-ingredients (e.g., differentiating meat from rice). This allows the system to handle complex dishes with multiple distinct components.
 
-![K-Means Clusters](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/kmeans_analysis/Cluster_1.png)
+![K-Means Clusters](./final_report_figures/kmeans_analysis/Cluster_1.png)
 *Figure 6: Color-based K-Means clustering (K=5) used for ingredient-level segmentation analysis.*
 
 ---
@@ -538,11 +509,7 @@ $$ Calories_{est} = Calories_{base} \times P_r $$
 This logic is applied dynamically in the GUI.
 
 #### Portion & Caloric Results
-````carousel
-![Portion Estimation](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/portion_calorie_analysis/Fig26_PortionEstimation.png)
-<!-- slide -->
-![Calorie Breakdown](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/portion_calorie_analysis/Fig29_NasiLemakPie.png)
-````
+![Portion](./final_report_figures/extra_visuals/portion_calorie_analysis/Fig26_PortionEstimation.png) ![Breakdown](./final_report_figures/extra_visuals/portion_calorie_analysis/Fig29_NasiLemakPie.png)
 *Figure 7: Portions identified via pixel area ratio and corresponding nutritional breakdown (Nasi Lemak example).*
 
 ---
@@ -590,7 +557,7 @@ This section details the critical hyperparameters used in the project scripts. M
 ### 1. Confusion Matrix Analysis
 The confusion matrix (generated in `generateFinalReportFigures.m`) reveals key insights:
 
-![Confusion Matrix Heatmap](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/Confusion_Matrix_Heatmap.png)
+![Confusion Matrix Heatmap](./final_report_figures/extra_visuals/architecture_diagrams/Confusion_Matrix_Heatmap.png)
 *Figure 3: Multi-class Confusion Matrix for the SqueezeNet model.*
 
 **Confusion Matrix Analysis (Figure 3):**
@@ -605,7 +572,7 @@ The heatmap shows our **83.00% validation accuracy**. Notable observations:
 
 ### 2. Model Comparison Table
 
-![Model Comparison Chart](file:///Users/izwan/CSC566_MINI%20GROUP%20PROJECT_HAWKER%20FOOD%20CALORIE_TEAMONE/final_report_figures/extra_visuals/architecture_diagrams/Model_Comparison.png)
+![Model Comparison Chart](./final_report_figures/extra_visuals/architecture_diagrams/Model_Comparison.png)
 *Figure 4: Comparative analysis of Classical SVM vs. Deep Learning Accuracy.*
 
 **Model Benchmarking (Figure 4):**
@@ -722,6 +689,13 @@ We provide a Unit Test suite in `tests/`.
 **Issue 4: Code Error "Input image is empty"**
 *   **Cause**: The file path provided to `preprocessImage` is incorrect.
 *   **Fix**: Use absolute paths or ensure the `dataset` folder is in the MATLAB path.
+
+---
+
+### ✅ GitHub Rendering Checklist
+*   [x] Fix GitHub Rendering: Convert absolute paths to relative
+*   [x] Fix GitHub Rendering: Fix Mermaid syntax errors (parentheses in labels)
+*   [x] Fix GitHub Rendering: Replace custom carousels with standard Markdown
 
 ---
 
