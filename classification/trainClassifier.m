@@ -9,7 +9,8 @@
 %
 % Inputs:
 %   datasetPath       - Path to training dataset (default: 'dataset/train')
-%   maxImagesPerClass - Maximum images per class for training (default: 200)
+%   maxImagesPerClass - Maximum images per class for training (default: 1000)
+%   useAugmentation   - Apply data augmentation (default: true)
 %
 % Outputs:
 %   model - Trained classifier structure with fields:
@@ -21,7 +22,7 @@
 %           .trainStats     - Training statistics including CV accuracy
 %           .confusionMat   - Confusion matrix from cross-validation
 
-function model = trainClassifier(datasetPath, maxImagesPerClass)
+function model = trainClassifier(datasetPath, maxImagesPerClass, useAugmentation)
     %% Default parameters
     if nargin < 1
         baseDir = fileparts(mfilename('fullpath'));
@@ -29,7 +30,10 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
         datasetPath = fullfile(projectRoot, 'dataset', 'train');
     end
     if nargin < 2
-        maxImagesPerClass = 200;  % Limit for faster training
+        maxImagesPerClass = 1000;  % Use ALL images by default
+    end
+    if nargin < 3
+        useAugmentation = true;  % Enable augmentation by default
     end
     
     %% Define food classes
@@ -43,6 +47,7 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
     fprintf('╚════════════════════════════════════════════════════════════╝\n\n');
     fprintf('Dataset path: %s\n', datasetPath);
     fprintf('Max images per class: %d\n', maxImagesPerClass);
+    fprintf('Data augmentation: %s\n', string(useAugmentation));
     fprintf('Number of classes: %d\n', numClasses);
     fprintf('Classes: %s\n\n', strjoin(classNames, ', '));
     
@@ -77,7 +82,12 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
         
         fprintf('      Loading %d images...\n', numImages);
         
-        classFeatures = zeros(numImages, 127);  % Preallocate (108 color + 19 texture)
+        % Calculate expected features (original + augmented)
+        augMultiplier = 1;
+        if useAugmentation
+            augMultiplier = 3;  % Original + 2 augmented versions
+        end
+        classFeatures = zeros(numImages * augMultiplier, 127);  % Fixed 127 features
         validCount = 0;
         
         for i = 1:numImages
@@ -88,7 +98,7 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
                 img = imread(imagePath);
                 processedImg = preprocessImage(img);
                 
-                % Extract features
+                % Extract features from original
                 [features, names] = extractFeatures(processedImg);
                 
                 validCount = validCount + 1;
@@ -96,6 +106,18 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
                 
                 if isempty(featureNames)
                     featureNames = names;
+                end
+                
+                % Apply augmentation
+                if useAugmentation
+                    for augIdx = 1:2  % 2 augmented versions per image
+                        augImg = augmentImage(img);
+                        augProcessed = preprocessImage(augImg);
+                        augFeatures = extractFeatures(augProcessed);
+                        
+                        validCount = validCount + 1;
+                        classFeatures(validCount, :) = augFeatures;
+                    end
                 end
                 
             catch ME
@@ -162,10 +184,10 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
         XTest = normalizedFeatures(testIdx, :);
         yTest = allLabels(testIdx);
         
-        % Train SVM
+        % Train SVM with improved parameters
         svmTemplate = templateSVM('KernelFunction', 'rbf', ...
                                   'KernelScale', 'auto', ...
-                                  'BoxConstraint', 1, ...
+                                  'BoxConstraint', 10, ...  % Original working value
                                   'Standardize', false);
         
         cvClassifier = fitcecoc(XTrain, yTrain, ...
@@ -259,7 +281,7 @@ function model = trainClassifier(datasetPath, maxImagesPerClass)
     
     svmTemplate = templateSVM('KernelFunction', 'rbf', ...
                               'KernelScale', 'auto', ...
-                              'BoxConstraint', 1, ...
+                              'BoxConstraint', 10, ...  % Increased for better margins
                               'Standardize', false);
     
     classifier = fitcecoc(normalizedFeatures, allLabels, ...

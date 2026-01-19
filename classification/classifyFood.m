@@ -67,12 +67,18 @@ function [predictedClass, confidence, allScores] = classifyFood(img, modelPath)
     % For SVM, scores are negative loss values - convert to probabilities
     % Using softmax-like transformation
     if all(scores <= 0)
-        % Negative loss scores - closer to 0 is better
-        probScores = exp(scores);  % Convert to positive
-        probScores = probScores / sum(probScores);  % Normalize
+        % Negative loss scores - apply softmax with temperature scaling
+        % Temperature < 1 makes distribution more peaked (higher max confidence)
+        temperature = 0.3;  % Lower = higher confidence for winner
+        scaledScores = scores / temperature;
+        probScores = exp(scaledScores - max(scaledScores));  % Numerical stability
+        probScores = probScores / sum(probScores);
     else
-        % Already positive scores
-        probScores = scores / sum(scores);
+        % Positive scores - apply softmax with temperature
+        temperature = 0.3;
+        scaledScores = scores / temperature;
+        probScores = exp(scaledScores - max(scaledScores));
+        probScores = probScores / sum(probScores);
     end
     
     % Find predicted class score

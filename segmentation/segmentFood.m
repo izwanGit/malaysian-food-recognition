@@ -68,7 +68,11 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
         % Create colored overlay for the mask outline
         maskOutline = bwperim(mask);
         
-        % Apply green outline
+        % Make outline thicker (dilate)
+        se = strel('disk', 2);
+        maskOutline = imdilate(maskOutline, se);
+        
+        % Apply bright green outline
         for c = 1:3
             channel = segmentedImg(:,:,c);
             if c == 2  % Green channel
@@ -79,10 +83,10 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
             segmentedImg(:,:,c) = channel;
         end
         
-        % Dim background
+        % Dim background (but keep it visible - 60% instead of 30%)
         for c = 1:3
             channel = segmentedImg(:,:,c);
-            channel(~mask) = uint8(double(channel(~mask)) * 0.3);
+            channel(~mask) = uint8(double(channel(~mask)) * 0.6);
             segmentedImg(:,:,c) = channel;
         end
     end

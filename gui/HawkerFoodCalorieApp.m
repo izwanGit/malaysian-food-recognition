@@ -153,7 +153,9 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
                 % Display original image
                 cla(app.OriginalAxes);
                 imshow(app.CurrentImage, 'Parent', app.OriginalAxes);
-                app.OriginalAxes.Color = 'none';
+                axis(app.OriginalAxes, 'image');
+                app.OriginalAxes.XLim = [0.5, size(app.CurrentImage, 2) + 0.5];
+                app.OriginalAxes.YLim = [0.5, size(app.CurrentImage, 1) + 0.5];
                 
                 % Clear other axes
                 app.showPlaceholder(app.ProcessedAxes, 'Click Analyze');
@@ -198,12 +200,16 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
                 % Display processed image
                 cla(app.ProcessedAxes);
                 imshow(results.processedImage, 'Parent', app.ProcessedAxes);
-                app.ProcessedAxes.Color = 'none';
+                axis(app.ProcessedAxes, 'image');
+                app.ProcessedAxes.XLim = [0.5, size(results.processedImage, 2) + 0.5];
+                app.ProcessedAxes.YLim = [0.5, size(results.processedImage, 1) + 0.5];
                 
                 % Display segmented image
                 cla(app.SegmentedAxes);
                 imshow(results.segmentedImage, 'Parent', app.SegmentedAxes);
-                app.SegmentedAxes.Color = 'none';
+                axis(app.SegmentedAxes, 'image');
+                app.SegmentedAxes.XLim = [0.5, size(results.segmentedImage, 2) + 0.5];
+                app.SegmentedAxes.YLim = [0.5, size(results.segmentedImage, 1) + 0.5];
                 
                 % Update food name with nice formatting
                 displayName = strrep(results.foodClass, '_', ' ');

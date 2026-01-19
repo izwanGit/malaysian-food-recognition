@@ -45,7 +45,8 @@ function fig = plotConfusionMatrix(modelPath, savePath)
     
     imagesc(confMatNorm);
     colormap(flipud(hot));
-    colorbar('Label', 'Percentage (%)');
+    cb = colorbar;
+    cb.Label.String = 'Percentage (%)';
     caxis([0 100]);
     
     %% Add text annotations

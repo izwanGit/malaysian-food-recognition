@@ -41,7 +41,7 @@ function [features, featureNames] = extractFeatures(img)
     %% Extract texture features
     [textureFeatures, textureNames] = extractTextureFeatures(img);
     
-    %% Combine all features
+    %% Combine all features (color + texture = 127 features)
     features = [colorFeatures, textureFeatures];
     
     %% Combine feature names
