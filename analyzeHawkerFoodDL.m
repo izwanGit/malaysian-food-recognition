@@ -35,15 +35,7 @@ function results = analyzeHawkerFoodDL(img)
     end
     
     %% Step 3: Segmentation (use classical - it's reliable)
-    [mask, ~, ~] = segmentFood(processedImg);
-    
-    %% Step 4: Create segmented image
-    segmentedImg = processedImg;
-    for c = 1:3
-        channel = segmentedImg(:,:,c);
-        channel(~mask) = 0;
-        segmentedImg(:,:,c) = channel;
-    end
+    [mask, ~, segmentedImg] = segmentFood(processedImg);
     
     %% Step 5: Portion Estimation
     [portionRatio, portionLabel, foodArea] = estimatePortion(mask, foodClass, processedImg);
