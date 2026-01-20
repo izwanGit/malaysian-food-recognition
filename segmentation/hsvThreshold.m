@@ -79,9 +79,10 @@ function mask = hsvThreshold(img, foodType)
             valMin = 0.10;
             valMax = 1.0;
             
-        otherwise  % 'general'
+         otherwise  % 'general'
             % General thresholds suitable for most foods
-            satMin = 0.05;   % Minimum saturation (exclude gray backgrounds)
+            % Adjusted for A++: Saturation 0.03 balances Rice vs Plate
+            satMin = 0.03;   % Minimum saturation (exclude only pure gray)
             satMax = 1.0;    % Maximum saturation
             valMin = 0.10;   % Minimum brightness (exclude very dark)
             valMax = 0.98;   % Maximum brightness (exclude overexposed white)
@@ -92,8 +93,9 @@ function mask = hsvThreshold(img, foodType)
     valMask = (V >= valMin) & (V <= valMax);
     
     %% Additional: Exclude white/gray backgrounds
-    % White has low saturation AND high value
-    whiteBackgroundMask = (S < 0.1) & (V > 0.85);
+    % Adjusted for A++: Only exclude SUPER bright/white backgrounds (e.g. pure white studio)
+    % Nasi Lemak rice is white (S~0.05-0.15), so we must be careful not to remove it.
+    whiteBackgroundMask = (S < 0.03) & (V > 0.96);
     
     % Very dark regions (shadows, edges)
     darkMask = V < 0.05;

@@ -108,10 +108,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             
             app.CaloriesValueLabel.Text = '---';
             app.CaloriesValueLabel.FontColor = app.TextSecondary;
-            app.ProteinLabel.Text = 'Protein: -- g';
-            app.CarbsLabel.Text = 'Carbs: -- g';
-            app.FatLabel.Text = 'Fat: -- g';
-            app.DailyValueLabel.Text = '-- % Daily Value';
+            app.ProteinLabel.Text = {'Protein: --'; 'Carbohydrates: --'; 'Total Fat: --'; ''; '-- Daily Value'};
             
             app.ProcessingTimeLabel.Text = '';
             
@@ -239,13 +236,25 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
                 
                 % Update nutrition
                 app.CaloriesValueLabel.Text = sprintf('%d', results.calories);
-                app.CaloriesValueLabel.FontColor = app.AccentColor;
+                app.CaloriesValueLabel.FontColor = [1.0, 0.58, 0.0]; % Amber
                 
-                nutrition = results.nutrition;
-                app.ProteinLabel.Text = sprintf('Protein: %.1f g', nutrition.protein);
-                app.CarbsLabel.Text = sprintf('Carbs: %.1f g', nutrition.carbs);
-                app.FatLabel.Text = sprintf('Fat: %.1f g', nutrition.fat);
-                app.DailyValueLabel.Text = sprintf('%d%% Daily Value', nutrition.caloriesDV);
+                nutri = results.nutrition;
+                % SINGLE MULTILINE LABEL FOR ROBUSTNESS
+                detailText = {
+                    sprintf('Protein: %.1f grams', nutri.protein);
+                    sprintf('Carbohydrates: %.1f grams', nutri.carbs);
+                    sprintf('Total Fat: %.1f grams', nutri.fat);
+                    '';
+                    sprintf('(%d%% of Daily Recommended Intake)', nutri.caloriesDV)
+                };
+                app.ProteinLabel.Text = detailText;
+                app.ProteinLabel.FontAngle = 'normal';
+                app.ProteinLabel.FontSize = 13;
+                
+                % Clear other labels if they exist (just in case)
+                app.CarbsLabel.Text = '';
+                app.FatLabel.Text = '';
+                app.DailyValueLabel.Text = '';
                 
                 % Update status with classifier info
                 app.ProcessingTimeLabel.Text = sprintf('%.2fs', processingTime);
@@ -300,17 +309,16 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             
             %% Main Figure
             app.UIFigure = uifigure('Name', 'Malaysian Hawker Food Calorie Estimator');
-            % Increased height from 800 to 900 for better spacing
-            app.UIFigure.Position = [50, 50, 1280, 900];
+            app.UIFigure.Position = [100, 100, 1200, 800]; % Safer height for visibility
             app.UIFigure.Color = app.BackgroundColor;
             app.UIFigure.Resize = 'on';
             
             %% Main Grid Layout
             app.MainGrid = uigridlayout(app.UIFigure, [3, 2]);
-            app.MainGrid.RowHeight = {120, '1x', 40}; % Increased from 80 to 120
+            app.MainGrid.RowHeight = {100, '1x', 40};
             app.MainGrid.ColumnWidth = {'2x', '1x'};
-            app.MainGrid.Padding = [20, 20, 20, 20];
-            app.MainGrid.RowSpacing = 15;
+            app.MainGrid.Padding = [20, 15, 20, 15];
+            app.MainGrid.RowSpacing = 10;
             app.MainGrid.ColumnSpacing = 20;
             app.MainGrid.BackgroundColor = app.BackgroundColor;
             
@@ -322,14 +330,14 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.HeaderPanel.BorderType = 'none';
             
             headerGrid = uigridlayout(app.HeaderPanel, [2, 2]);
-            headerGrid.RowHeight = {'2x', '1x'}; % Prioritize Title space
+            headerGrid.RowHeight = {'1x', '1x'};
             headerGrid.ColumnWidth = {'1x', 150};
-            headerGrid.Padding = [25, 15, 25, 15]; % Reduced vertical padding slightly
+            headerGrid.Padding = [20, 10, 20, 10];
             headerGrid.BackgroundColor = app.PrimaryColor;
             
             app.TitleLabel = uilabel(headerGrid);
             app.TitleLabel.Text = '🍲 Malaysian Hawker Food Recognition';
-            app.TitleLabel.FontSize = 24; % Reduced slightly to ensure fit
+            app.TitleLabel.FontSize = 22;
             app.TitleLabel.FontWeight = 'bold';
             app.TitleLabel.FontColor = 'white';
             app.TitleLabel.Layout.Row = 1;
@@ -337,7 +345,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             
             app.SubtitleLabel = uilabel(headerGrid);
             app.SubtitleLabel.Text = 'Portion-Based Calorie Estimation System';
-            app.SubtitleLabel.FontSize = 14;
+            app.SubtitleLabel.FontSize = 13;
             app.SubtitleLabel.FontColor = [0.9, 0.95, 1.0];
             app.SubtitleLabel.Layout.Row = 2;
             app.SubtitleLabel.Layout.Column = 1;
@@ -353,8 +361,8 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ImageGrid = uigridlayout(app.ImagePanel, [2, 3]);
             app.ImageGrid.RowHeight = {30, '1x'};
             app.ImageGrid.ColumnWidth = {'1x', '1x', '1x'};
-            app.ImageGrid.Padding = [15, 15, 15, 15];
-            app.ImageGrid.RowSpacing = 10;
+            app.ImageGrid.Padding = [15, 10, 15, 10];
+            app.ImageGrid.RowSpacing = 5;
             app.ImageGrid.ColumnSpacing = 15;
             app.ImageGrid.BackgroundColor = app.CardColor;
             
@@ -420,13 +428,12 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ControlPanel.BorderType = 'none';
             
             app.ControlGrid = uigridlayout(app.ControlPanel, [10, 1]);
-            % Adjusted heights for better fit: Results 80->120, Divider spaces optimized
-            app.ControlGrid.RowHeight = {25, 35, 50, 50, 50, 25, 120, 25, '1x', 25};
-            app.ControlGrid.Padding = [20, 20, 20, 20];
-            app.ControlGrid.RowSpacing = 12;
+            app.ControlGrid.RowHeight = {25, 35, 40, 40, 40, 20, 100, 20, 200, 20};
+            app.ControlGrid.Padding = [20, 10, 20, 10];
+            app.ControlGrid.RowSpacing = 8;
             app.ControlGrid.BackgroundColor = app.CardColor;
             
-            % Classifier Selection Label
+            % Classifier Selection
             app.ClassifierLabel = uilabel(app.ControlGrid);
             app.ClassifierLabel.Text = '🧠 Classification Method';
             app.ClassifierLabel.FontSize = 11;
@@ -434,7 +441,6 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ClassifierLabel.FontColor = app.TextSecondary;
             app.ClassifierLabel.Layout.Row = 1;
             
-            % Classifier Dropdown
             app.ClassifierDropdown = uidropdown(app.ControlGrid);
             app.ClassifierDropdown.Items = {'Classic ML (SVM)', 'Deep Learning (CNN)'};
             app.ClassifierDropdown.Value = 'Classic ML (SVM)';
@@ -444,7 +450,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ClassifierDropdown.Layout.Row = 2;
             app.ClassifierDropdown.ValueChangedFcn = @app.ClassifierChanged;
             
-            % Load Button
+            % Buttons
             app.LoadButton = uibutton(app.ControlGrid, 'push');
             app.LoadButton.Text = '📂  Load Image';
             app.LoadButton.FontSize = 14;
@@ -454,7 +460,6 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.LoadButton.Layout.Row = 3;
             app.LoadButton.ButtonPushedFcn = @app.LoadButtonPushed;
             
-            % Analyze Button
             app.AnalyzeButton = uibutton(app.ControlGrid, 'push');
             app.AnalyzeButton.Text = '🔍  Analyze Food';
             app.AnalyzeButton.FontSize = 14;
@@ -465,7 +470,6 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.AnalyzeButton.Enable = 'off';
             app.AnalyzeButton.ButtonPushedFcn = @app.AnalyzeButtonPushed;
             
-            % Reset Button
             app.ResetButton = uibutton(app.ControlGrid, 'push');
             app.ResetButton.Text = '🔄  Reset';
             app.ResetButton.FontSize = 12;
@@ -474,7 +478,6 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ResetButton.Layout.Row = 5;
             app.ResetButton.ButtonPushedFcn = @app.ResetButtonPushed;
             
-            % Divider
             divider1 = uilabel(app.ControlGrid);
             divider1.Text = '─────── Results ───────';
             divider1.FontColor = [0.8, 0.8, 0.8];
@@ -507,14 +510,14 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.ConfidenceMeter.FontWeight = 'bold';
             app.ConfidenceMeter.FontColor = app.TextSecondary;
             app.ConfidenceMeter.HorizontalAlignment = 'right';
-            app.ConfidenceMeter.Layout.Row = [1, 2]; % Span 2 rows to fit big text
+            app.ConfidenceMeter.Layout.Row = [1, 2];
             app.ConfidenceMeter.Layout.Column = 2;
             
             app.ConfidenceBar = uilabel(resultsGrid);
             app.ConfidenceBar.Text = '';
             app.ConfidenceBar.BackgroundColor = [0.9, 0.9, 0.9];
             app.ConfidenceBar.Layout.Row = 2;
-            app.ConfidenceBar.Layout.Column = 1; % Under food name
+            app.ConfidenceBar.Layout.Column = 1;
             
             app.PortionLabel = uilabel(resultsGrid);
             app.PortionLabel.Text = 'Portion: --';
@@ -523,7 +526,6 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.PortionLabel.Layout.Row = 3;
             app.PortionLabel.Layout.Column = [1, 2];
             
-            % Nutrition Divider
             divider2 = uilabel(app.ControlGrid);
             divider2.Text = '────── Nutrition ──────';
             divider2.FontColor = [0.8, 0.8, 0.8];
@@ -537,65 +539,50 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
             app.NutritionPanel.BorderType = 'line';
             app.NutritionPanel.BorderColor = [0.92, 0.92, 0.94];
             
-            nutritionGrid = uigridlayout(app.NutritionPanel, [5, 2]);
-            nutritionGrid.RowHeight = {50, 25, 25, 25, 25};
-            nutritionGrid.ColumnWidth = {'1x', '1x'};
+            nutritionGrid = uigridlayout(app.NutritionPanel, [2, 1]);
+            nutritionGrid.RowHeight = {60, '1x'};
             nutritionGrid.Padding = [15, 10, 15, 10];
             nutritionGrid.RowSpacing = 5;
             nutritionGrid.BackgroundColor = app.CardColor;
             
-            % Calories (big display)
-            app.CaloriesValueLabel = uilabel(nutritionGrid);
+            calRowGrid = uigridlayout(nutritionGrid, [1, 2]);
+            calRowGrid.ColumnWidth = {'1x', '1x'};
+            calRowGrid.Padding = [0, 0, 0, 0];
+            calRowGrid.BackgroundColor = app.CardColor;
+            calRowGrid.Layout.Row = 1;
+            
+            app.CaloriesValueLabel = uilabel(calRowGrid);
             app.CaloriesValueLabel.Text = '---';
-            app.CaloriesValueLabel.FontSize = 36;
+            app.CaloriesValueLabel.FontSize = 40;
             app.CaloriesValueLabel.FontWeight = 'bold';
-            app.CaloriesValueLabel.FontColor = app.TextSecondary;
-            app.CaloriesValueLabel.HorizontalAlignment = 'center';
-            app.CaloriesValueLabel.Layout.Row = 1;
+            app.CaloriesValueLabel.FontColor = [1.0, 0.58, 0.0];
+            app.CaloriesValueLabel.HorizontalAlignment = 'right';
             app.CaloriesValueLabel.Layout.Column = 1;
             
-            app.CaloriesUnitLabel = uilabel(nutritionGrid);
-            app.CaloriesUnitLabel.Text = 'kcal';
-            app.CaloriesUnitLabel.FontSize = 14;
-            app.CaloriesUnitLabel.FontColor = app.TextSecondary;
+            app.CaloriesUnitLabel = uilabel(calRowGrid);
+            app.CaloriesUnitLabel.Text = ' kcal';
+            app.CaloriesUnitLabel.FontSize = 16;
+            app.CaloriesUnitLabel.FontWeight = 'bold';
+            app.CaloriesUnitLabel.FontColor = [0.5, 0.5, 0.55];
             app.CaloriesUnitLabel.VerticalAlignment = 'bottom';
-            app.CaloriesUnitLabel.Layout.Row = 1;
             app.CaloriesUnitLabel.Layout.Column = 2;
             
-            % Macros
             app.ProteinLabel = uilabel(nutritionGrid);
-            app.ProteinLabel.Text = 'Protein: -- g';
-            app.ProteinLabel.FontSize = 12;
+            app.ProteinLabel.Text = {'Protein: --'; 'Carbohydrates: --'; 'Total Fat: --'; ''; '-- Daily Value'};
+            app.ProteinLabel.FontSize = 13;
             app.ProteinLabel.FontColor = app.TextPrimary;
             app.ProteinLabel.Layout.Row = 2;
-            app.ProteinLabel.Layout.Column = [1, 2];
             
-            app.CarbsLabel = uilabel(nutritionGrid);
-            app.CarbsLabel.Text = 'Carbs: -- g';
-            app.CarbsLabel.FontSize = 12;
-            app.CarbsLabel.FontColor = app.TextPrimary;
-            app.CarbsLabel.Layout.Row = 3;
-            app.CarbsLabel.Layout.Column = [1, 2];
-            
-            app.FatLabel = uilabel(nutritionGrid);
-            app.FatLabel.Text = 'Fat: -- g';
-            app.FatLabel.FontSize = 12;
-            app.FatLabel.FontColor = app.TextPrimary;
-            app.FatLabel.Layout.Row = 4;
-            app.FatLabel.Layout.Column = [1, 2];
-            
-            app.DailyValueLabel = uilabel(nutritionGrid);
-            app.DailyValueLabel.Text = '-- % Daily Value';
-            app.DailyValueLabel.FontSize = 11;
-            app.DailyValueLabel.FontColor = app.TextSecondary;
-            app.DailyValueLabel.FontAngle = 'italic';
-            app.DailyValueLabel.Layout.Row = 5;
-            app.DailyValueLabel.Layout.Column = [1, 2];
+            % Hidden Labels for backward compatibility
+            app.CarbsLabel = uilabel(nutritionGrid); app.CarbsLabel.Visible = 'off';
+            app.FatLabel = uilabel(nutritionGrid); app.FatLabel.Visible = 'off';
+            app.DailyValueLabel = uilabel(nutritionGrid); app.DailyValueLabel.Visible = 'off';
             
             % Processing time
             app.ProcessingTimeLabel = uilabel(app.ControlGrid);
             app.ProcessingTimeLabel.Text = '';
             app.ProcessingTimeLabel.FontSize = 10;
+            app.ProcessingTimeLabel.FontName = 'Arial';
             app.ProcessingTimeLabel.FontColor = app.TextSecondary;
             app.ProcessingTimeLabel.HorizontalAlignment = 'right';
             app.ProcessingTimeLabel.Layout.Row = 10;

@@ -34,11 +34,26 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
     cleanMask = morphologyClean(hsvMask);
     
     %% Step 3: Remove background and keep largest connected region(s)
-    % Label connected components
+    cc = bwconncomp(cleanMask);
+    
+    % A++ ENHANCEMENT: Central Focus Strategy
+    % Instead of relying on connectivity (which fails if rice touches plate),
+    % we enforce a spatial prior: Food is in the center.
+    [rows, cols, ~] = size(img);
+    [X, Y] = meshgrid(1:cols, 1:rows);
+    centerX = cols / 2;
+    centerY = rows / 2;
+    radius = min(rows, cols) * 0.48; % Increased to 96% to keep chicken
+    
+    circleMask = ((X - centerX).^2 + (Y - centerY).^2) <= radius^2;
+    
+    % Intersect with our color mask to remove outer plate rims
+    cleanMask = cleanMask & circleMask;
+    
+    % Re-compute components after cutting the edges
     cc = bwconncomp(cleanMask);
     
     if cc.NumObjects > 0
-        % Get properties of each region
         stats = regionprops(cc, 'Area', 'BoundingBox');
         areas = [stats.Area];
         
