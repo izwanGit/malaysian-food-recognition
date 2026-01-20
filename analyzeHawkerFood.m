@@ -75,7 +75,7 @@ function results = analyzeHawkerFood(input, mode)
     
     %% Step 4: Segment food region
     fprintf('Step 4: Segmenting food region...\n');
-    [mask, labeledRegions, segmentedImage] = segmentFood(processedImage);
+    [mask, labeledRegions, segmentedImage] = segmentFood(processedImage, foodClass);
     foodArea = sum(mask(:));
     totalArea = numel(mask);
     fprintf('  Food coverage: %.1f%% of image\n\n', foodArea / totalArea * 100);

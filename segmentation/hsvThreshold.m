@@ -97,22 +97,19 @@ function mask = hsvThreshold(img, foodType)
     texture = entropyfilt(V, true(5));
     plateMask = (S < 0.05) & (V > 0.90) & (texture < 0.5);
     
-    % Plate detection: high brightness + low saturation + low texture
-    % Strictly for plates (very smooth, very bright)
-    plateMask = (S < 0.05) & (V > 0.90) & (texture < 0.5);
-    
     %% Combine masks
     if strcmpi(foodType, 'satay')
         % For satay: be aggressive about keeping everything
         mask = satMask & valMask;
     else
         baseMask = satMask & valMask;
-        % Exclude ONLY plate. Do not try to guess "wrapper" here.
-        mask = baseMask & ~plateMask;
+        % Don't remove plate yet - let K-Means in segmentFood handle it
+        % We want to capture EVERYTHING first (Rice included)
+        mask = baseMask; 
     end
     
     %% Ensure Spatial Coherence
-    % Keep largest connected components (Top 5) to allow for separated food items
+    % Keep largest connected components (Top 3) to allow for separated food items
     cc = bwconncomp(mask, 8);
     stats = regionprops(cc, 'Area');
     
@@ -120,13 +117,13 @@ function mask = hsvThreshold(img, foodType)
         areas = [stats.Area];
         [~, sortedIdx] = sort(areas, 'descend');
         
-        % Keep top 5 largest regions (Rice, Chicken, Sambal, Egg, Anchovies)
-        keepCount = min(5, numel(sortedIdx));
+        % Keep top 3 largest regions (e.g. Rice, Chicken, Sambal)
+        keepCount = min(3, numel(sortedIdx));
+        keepIdx = sortedIdx(1:keepCount);
         
         mask = false(size(mask));
-        for i = 1:keepCount
-            idx = sortedIdx(i);
-            mask(cc.PixelIdxList{idx}) = true;
+        for i = keepIdx
+            mask(cc.PixelIdxList{i}) = true;
         end
     end
 end

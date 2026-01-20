@@ -38,9 +38,6 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     labImg(:,:,1) = L_eq * 100;
     imgEnhanced = lab2rgb(labImg);
     
-    % A++ ENHANCEMENT: Bilateral Filtering (REMOVED - Reverting to stable)
-    % imgEnhanced = imbilatfilt(imgEnhanced); 
-    
     %% STEP 1: Geometry-Aware HSV Thresholding
     hsvMask = hsvThreshold(imgEnhanced, foodType);
     
@@ -64,10 +61,6 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     end
     
     cleanMask = morphologyClean(hsvMask, options);
-    
-    %% STEP 2.5: BREAK CONNECTIVITY (REMOVED - Reverting to stable)
-    % cleanMask = imerode(cleanMask, seErode);
-    
     
     %% STEP 3: A++ CONCAVITY-AWARE SHAPE REFINEMENT
     [rows, cols, ~] = size(img);
@@ -94,11 +87,11 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         
         cleanMask(cc.PixelIdxList{i}) = regionMask(cc.PixelIdxList{i});
     end
-    %% STEP 3.5: ADAPTIVE K-MEANS REFINEMENT (Saturation Dominant)
-    % Cluster into Food (Colorful) vs Background (Dull)
+    %% STEP 3.5: ADAPTIVE K-MEANS REFINEMENT (The "Genius" Loophole)
+    % Cluster into Food (Textured/High Sat) vs Background (Smooth/Low Sat)
     
     pixelIdx = find(cleanMask);
-    if numel(pixelIdx) > 500
+    if numel(pixelIdx) > 1000
         % Extract features
         hsvMap = rgb2hsv(img);
         S = hsvMap(:,:,2);
@@ -107,7 +100,6 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         grayImg = rgb2gray(img);
         entropyMap = entropyfilt(grayImg, true(9));
         
-        % Features
         featS = S(pixelIdx);
         featE = entropyMap(pixelIdx);
         
@@ -115,27 +107,26 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         featS = (featS - min(featS)) / (max(featS) - min(featS) + eps);
         featE = (featE - min(featE)) / (max(featE) - min(featE) + eps);
         
-        % CRITICAL WEIGHTING ADJUSTMENT (Restoring "Best Version"):
-        % Saturation is the reliable discriminator for Colorful Food vs Dull Wrapper/Rice.
-        % Texture is ignored because wrinkles create fake texture.
-        
-        featS = featS * 2.5;  % High Saturation Weight
-        featE = featE * 1.0;  % Normal Texture Weight
+        % CRITICAL WEIGHTING: Color (Saturation) is more reliable than Texture for wrapper vs food.
+        % Food = Colorful. Wrapper/Rice = Dull.
+        featS = featS * 2.5; 
         
         % K-Means Clustering (k=2)
         features = [featS, featE];
-        
         try
             [clusterIdx, centers] = kmeans(features, 2, 'Replicates', 3);
             
-            % Identify "Food" Cluster
-            % Higher Saturation + Texture Score
-            % Food = Colorful.
-            meanSat1 = centers(1, 1); meanTex1 = centers(1, 2);
-            meanSat2 = centers(2, 1); meanTex2 = centers(2, 2);
+            % Identify "Food" Cluster:
+            % Food = Higher Texture OR Higher Saturation (usually)
+            % Background = Smoother AND Lower Saturation (usually)
+            meanTexture1 = centers(1, 2);
+            meanTexture2 = centers(2, 2);
+            meanSat1 = centers(1, 1);
+            meanSat2 = centers(2, 1);
             
-            score1 = meanSat1 + meanTex1;
-            score2 = meanSat2 + meanTex2;
+            % Use combined score (Sat + Texture) to pick food cluster
+            score1 = meanSat1 + meanTexture1;
+            score2 = meanSat2 + meanTexture2;
             
             foodCluster = 1;
             if score2 > score1
@@ -143,28 +134,35 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             end
             
             % RICE RESCUE MISSION:
-            % Rice: High Brightness (V > 0.7), Low Sat (S < 0.3)
+            % Rice looks like background (Smooth, Low Saturation).
+            % We must PROTECT it from being discarded.
+            % Rice Profile: Bright (V > 0.70) AND Low Saturation (S < 0.25)
             values = V(pixelIdx);
             saturations = S(pixelIdx);
+            entropies = entropyMap(pixelIdx);
             
-            isRice = (values > 0.70) & (saturations < 0.30);
+            % Stricter check: Must be Bright AND Low Sat
+            isRice = (values > 0.70) & (saturations < 0.25);
+            
             isFoodCluster = (clusterIdx == foodCluster);
             
-            % Keep Food Cluster OR Rice
+            % Keep pixels that are EITHER in the Food Cluster OR look like Rice
             keepPixels = pixelIdx(isFoodCluster | isRice);
             
             refinedMask = false(rows, cols);
             refinedMask(keepPixels) = true;
             
-            % Cleanup
+            % Process refined mask
             refinedMask = imclose(refinedMask, strel('disk', 3));
             refinedMask = imfill(refinedMask, 'holes');
+            
+            % Remove tiny noise spots that might have been "rescued" (e.g. table reflections)
             refinedMask = bwareaopen(refinedMask, 200);
             
             cleanMask = refinedMask;
             
         catch
-            % K-means failed
+            % K-means failed, keep original
         end
     end
     %% STEP 4: EDGE-GUIDED ACTIVE CONTOURS
@@ -213,10 +211,6 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     else
         mask = cleanMask;
     end
-    
-    %% STEP 4.5: GRABCUT REFINEMENT (REMOVED - Reverting to stable)
-    % Reverting to previous best version without GrabCut.
-
     
     %% STEP 5: SEMANTIC FILLING (Fix Holes in Solid Objects)
     mask = imfill(mask, 'holes');
