@@ -54,10 +54,11 @@ function mask = hsvThreshold(img, foodType)
             
         case 'kaya_toast'
             % Kaya toast: brown bread with green kaya
-            satMin = 0.08;
+            % FIX: Broaden for White Bread (Low Sat, High Val)
+            satMin = 0.02;
             satMax = 0.9;
             valMin = 0.15;
-            valMax = 0.95;
+            valMax = 1.0;
             
         case 'mixed_rice'
             % Mixed rice: various colors
