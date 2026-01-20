@@ -121,27 +121,35 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         % Combined Features: Color (2x), Texture (1x), Spatial (1.5x)
         features = double([featS * 2.0, featE, spatialFeat * 1.5]);
         
-        % Ensure no NaNs
-        features(isnan(features)) = 0;
+        % Ensure no NaNs or Infs
+        features(~isfinite(features)) = 0;
         
         try
+            % A++ ROBUSTNESS FIX: Check if we have enough unique data points for 3 clusters
+            numUnique = size(unique(features, 'rows'), 1);
+            k_clusters = min(3, numUnique);
+            
+            if k_clusters < 2
+                % Not enough data to cluster, skip to catch block logic implicitly
+                error('Not enough unique pixels for clustering (found %d).', numUnique);
+            end
+
             % SMART FIX: Use 'EmptyAction','singleton' to prevent crashes if a cluster disappears
-            [clusterIdx, centers] = kmeans(features, 3, 'Replicates', 2, ...
+            [clusterIdx, centers] = kmeans(features, k_clusters, 'Replicates', 2, ...
                 'MaxIter', 100, 'EmptyAction', 'singleton');
             
             % Score Clusters: High Score = Likely Food
-            % Score = Sat + Texture + Spatial
-            % centers(:,1)=Sat, (:,2)=Tex, (:,3)=Spatial
-            scores = centers(:,1) + centers(:,2) + centers(:,3);
+            % centers sum depends on columns
+            scores = sum(centers, 2);
             
             [~, sortedIdx] = sort(scores, 'descend');
             
-            % sortedIdx(1) = Best Food (Chicken, Sambal)
-            % sortedIdx(2) = Ambiguous (Rice, Light Gravy)
-            % sortedIdx(3) = Background (Wrapper, Plate, Table)
-            
-            % Logic: Keep Top 2 clusters. Drop the Worst one.
-            keepClusters = sortedIdx(1:2);
+            % Logic: Keep Top clusters. 
+            if k_clusters == 3
+                keepClusters = sortedIdx(1:2);
+            else
+                keepClusters = sortedIdx(1);
+            end
             
             % A++ EMERGENCY UPDATE: Broaden to catch "Shadow Rice" AND "Dirty Rice"
             % Sat < 0.45 (allow gravy colors), Val > 0.25 (allow dark shadows)
@@ -168,9 +176,9 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             refinedMask = bwareaopen(refinedMask, 150); % Lighter cleanup for rice grains
             
             cleanMask = refinedMask;
-            fprintf('  Debug: K-Means kept %d pixels (Dropped worst cluster).\n', sum(cleanMask(:)));
-        catch
-            fprintf('  Debug: K-Means failed, keeping original.\n');
+            fprintf('  Debug: K-Means (%d clusters) kept %d pixels.\n', k_clusters, sum(cleanMask(:)));
+        catch ME
+            fprintf('  Debug: K-Means failed: %s. Keeping original.\n', ME.message);
         end
     end
     
