@@ -25,10 +25,12 @@ function mask = hsvThreshold(img, foodType)
             valMax = 1.0;
             
         case 'roti_canai'
-            satMin = 0.10;
-            satMax = 0.8;
-            valMin = 0.20;
-            valMax = 0.95;
+            % Roti Canai: pale brown flatbread
+            % FIX: Lower Sat Min to 0.05 to catch floury/pale parts
+            satMin = 0.05;
+            satMax = 0.9;
+            valMin = 0.15;
+            valMax = 1.0;
             
         case 'satay'
             % CRITICAL FIX FOR SATAY STICKS:

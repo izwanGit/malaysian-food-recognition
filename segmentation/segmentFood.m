@@ -218,9 +218,9 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     % The user wants exactly 1 coherent shape. No islands.
     
     % 1. Create a "Super Glue" mask to bridge meat and rice
-    % LAKSA FIX: Use HYPER glue (80px) for Laksa to bridge soup gaps
+    % LAKSA/ROTI FIX: Use HYPER glue (80px) for Laksa/Roti to bridge soup/dhal gaps
     % EVERYTHING ELSE: Use STRONG glue (60px) to ensure "Only 1 Shape"
-    if strcmpi(foodType, 'laksa')
+    if any(strcmpi(foodType, {'laksa', 'roti_canai'}))
         glueRadius = 80; 
     else
         glueRadius = 60; % Standardized for Satay/Nasi Lemak/etc
