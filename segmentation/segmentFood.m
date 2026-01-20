@@ -104,6 +104,20 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
             % Fallback to standard morphological closing
             mask = imclose(mask, strel('disk', 3));
         end
+        
+        % A++ ENHANCEMENT: Texture Guard (Robust Plate Removal)
+        % Plates are smooth (low entropy). Food (Rice/Meat/Veg) is textured (high entropy).
+        % We remove remaining regions that are BRIGHT (Plate) AND SMOOTH.
+        % This protects dark smooth sauce, but kills white smooth plate.
+        safeZone = grayGuide < 0.9; % Don't touch dark things (Sauce/Meat)
+        textureMap = entropyfilt(grayGuide);
+        smoothPlateMask = (grayGuide > 0.7) & (textureMap < 0.8); % Bright & Smooth
+        
+        % Only remove if it's NOT in the "safe zone" (i.e., it's bright)
+        mask = mask & (~smoothPlateMask | safeZone);
+        
+        % Final cleanup of small disconnected noise
+        mask = bwareaopen(mask, 500);
     end
 
     %% Step 5: K-means clustering for ingredient segmentation
