@@ -281,9 +281,21 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         mask = mask & oneShapeContainer;
         
         % 4. Solidify: If the user wants a 'brush tool' feel, we should fill internal gaps
-        if any(strcmpi(foodType, {'laksa', 'roti_canai'}))
-             % A++ ULTIMATE POLISH: Aggressive smoothing for solid objects
-             mask = imclose(mask, strel('disk', 12));
+        if any(strcmpi(foodType, {'laksa', 'roti_canai', 'nasi_lemak', 'mixed_rice'}))
+             % A++ SMART POLISH: Aggressive smoothing BUT with color-check
+             % 1. Create the smooth shape candidate
+             smoothMask = imclose(mask, strel('disk', 12));
+             smoothMask = imfill(smoothMask, 'holes');
+             
+             % 2. Create a "Safe Zone" based on original color detections + small dilation
+             % This prevents the mask from growing into the white/green plate
+             safeZone = imdilate(mask, strel('disk', 5));
+             
+             % 3. Intersection: Only keep smooth parts that are near real food pixels
+             mask = smoothMask & safeZone;
+             
+             % 4. Final light close to fix any micro-jags from the intersection
+             mask = imclose(mask, strel('disk', 3));
              mask = imfill(mask, 'holes');
         else
              % Standard polish for delicate shapes (Satay, Popiah)

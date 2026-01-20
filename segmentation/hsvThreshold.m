@@ -124,6 +124,12 @@ function mask = hsvThreshold(img, foodType)
     isNonFoodColor = (H > 0.45) & (H < 0.85) & (S > 0.15);
     floralMask = isNonFoodColor;
 
+    % 5. A++ FIX: GREY PLATE KILLER
+    % Exclude neutral grey pixels (typical cafeteria plates)
+    % Low Saturation + Mid-range Value (not bright white, not dark shadow)
+    isGreyPlate = (S < 0.15) & (V > 0.30) & (V < 0.70);
+    platePaperMask = platePaperMask | isGreyPlate;
+
     % Combine and dilate
     bgMask = platePaperMask | shadowMask | highlightMask | floralMask;
     bgMask = imdilate(bgMask, strel('disk', 3));
@@ -135,7 +141,8 @@ function mask = hsvThreshold(img, foodType)
     coreFood = (S > 0.30) & (V > 0.20) & ~bgMask;
     
     % Candidate Rice (Any smooth/pale area that might be rice)
-    riceCandidates = (S < 0.45) & (V > 0.25) & bgMask;
+    % TIGHTENED: Must be brighter (V > 0.40) to avoid dark grey plates
+    riceCandidates = (S < 0.45) & (V > 0.40) & bgMask;
     
     if any(coreFood(:)) && any(riceCandidates(:))
         % Merge all rice that is near the core food
