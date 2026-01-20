@@ -47,7 +47,8 @@ function mask = hsvThreshold(img, foodType)
             
         case 'popiah'
             % Popiah: beige wrapper with colorful filling
-            satMin = 0.05;
+            % FIX: Lower Sat Min to capture pale wrapper
+            satMin = 0.02;
             satMax = 0.9;
             valMin = 0.15;
             valMax = 1.0;
