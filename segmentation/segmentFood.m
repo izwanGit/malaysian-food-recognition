@@ -152,6 +152,9 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             end
             
             % A++ EMERGENCY UPDATE: Broaden to catch "Shadow Rice" AND "Dirty Rice"
+            % Define local vars for rice logic
+            values = V(pixelIdx);
+            saturations = S(pixelIdx);
             % Sat < 0.45 (allow gravy colors), Val > 0.25 (allow dark shadows)
             isRice = (values > 0.25) & (saturations < 0.45);
             
