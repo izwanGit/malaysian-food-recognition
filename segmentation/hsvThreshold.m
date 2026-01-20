@@ -40,8 +40,8 @@ function mask = hsvThreshold(img, foodType)
 
         case 'laksa'
             % Laksa: orange/red soup with noodles
-            % FIX: Lower Sat Min for pale coconut milk (Lemak)
-            satMin = 0.05;
+            % FIX: Lower Sat Min to 0.02 to catch pale coconut broth (Lemak)
+            satMin = 0.02; 
             satMax = 1.0;
             valMin = 0.10;
             valMax = 1.0;
@@ -107,8 +107,8 @@ function mask = hsvThreshold(img, foodType)
     platePaperMask = isSmooth & isPale;
     
     % A++ FIX: Don't let the plate-killer eat creamy LAKSA/CURRY soup
-    % If it's orange/yellow (Hue 0.05-0.22), it's probably food!
-    isCurryHue = (H > 0.05) & (H < 0.22);
+    % Broaden Shield to Hue 0.0 to 0.25 (Red/Orange/Yellow)
+    isCurryHue = (H >= 0.0) & (H <= 0.25);
     platePaperMask = platePaperMask & ~isCurryHue;
     
     % 2. Deep Shadow (External): Very low V

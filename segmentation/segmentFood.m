@@ -160,8 +160,10 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             
             % UNIVERSAL SAUCE RESCUE: Keep Red, Orange, and Yellow (Sambal/Curry/Lemak)
             % Hue 0.0 to 0.22 covers Red/Orange/Yellow. 
-            % Reduced Sat requirement to 0.3 to catch creamy soup.
-            isSauce = (saturations > 0.3) & (hueVals >= 0 & hueVals <= 0.22 | hueVals > 0.9);
+            % Reduced Sat requirement to 0.1 to catch creamy soup.
+            H_vals = hsvMap(:,:,1);
+            hueVals = H_vals(pixelIdx);
+            isSauce = (saturations > 0.1) & (hueVals >= 0 & hueVals <= 0.22 | hueVals > 0.9);
             
             % Selection Logic
             isInKeepClusters = ismember(clusterIdx, keepClusters);
