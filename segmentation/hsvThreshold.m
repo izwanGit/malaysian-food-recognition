@@ -124,12 +124,6 @@ function mask = hsvThreshold(img, foodType)
     isNonFoodColor = (H > 0.45) & (H < 0.85) & (S > 0.15);
     floralMask = isNonFoodColor;
 
-    % 5. A++ FIX: GREY PLATE KILLER
-    % Exclude neutral grey pixels (typical cafeteria plates)
-    % Low Saturation + Mid-range Value (not bright white, not dark shadow)
-    isGreyPlate = (S < 0.15) & (V > 0.30) & (V < 0.70);
-    platePaperMask = platePaperMask | isGreyPlate;
-
     % Combine and dilate
     bgMask = platePaperMask | shadowMask | highlightMask | floralMask;
     bgMask = imdilate(bgMask, strel('disk', 3));
@@ -141,9 +135,20 @@ function mask = hsvThreshold(img, foodType)
     coreFood = (S > 0.30) & (V > 0.20) & ~bgMask;
     
     % Candidate Rice (Any smooth/pale area that might be rice)
-    % TIGHTENED: Must be brighter (V > 0.40) to avoid dark grey plates
-    riceCandidates = (S < 0.45) & (V > 0.40) & bgMask;
+    % A++ FIX (GREY PLATE KILLER): Enforce stricter condition for 'pale'
+    % Must generally be BRIGHT (Val > 0.4) and LOW SAT (Sat < 0.4)
+    % BUT exclude very low saturation grey (Sat < 0.05) which is usually the plate
+    riceCandidates = (S < 0.45) & (S > 0.05) & (V > 0.40) & bgMask;
     
+    % A++ FIX (BLUE RICE KERABU): Allow Blue (Hue 0.5-0.7) for Nasi Lemak
+    if strcmpi(foodType, 'nasi_lemak')
+         isBlueRice = (H > 0.5) & (H < 0.7) & (S > 0.05) & (V > 0.3);
+         riceCandidates = riceCandidates | isBlueRice;
+         % Disable floral mask for Nasi Lemak's blue rice? No, handle thoughtfully.
+         floralMask = floralMask & ~isBlueRice; 
+         bgMask = bgMask & ~isBlueRice; % Rescue blue from bg
+    end
+
     if any(coreFood(:)) && any(riceCandidates(:))
         % Merge all rice that is near the core food
         % Use a large proximity (40 pixels) to bridge gaps in nasi lemak boxes
