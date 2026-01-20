@@ -40,7 +40,8 @@ function mask = hsvThreshold(img, foodType)
 
         case 'laksa'
             % Laksa: orange/red soup with noodles
-            satMin = 0.10;
+            % FIX: Lower Sat Min for pale coconut milk (Lemak)
+            satMin = 0.05;
             satMax = 1.0;
             valMin = 0.10;
             valMax = 1.0;

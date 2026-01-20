@@ -217,8 +217,8 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     % The user wants exactly 1 coherent shape. No islands.
     
     % 1. Create a "Super Glue" mask to bridge meat and rice
-    % SATAY FIX: Use MASSIVE glue to connect separate sauce bowls
-    if strcmpi(foodType, 'satay')
+    % SATAY/LAKSA FIX: Use MASSIVE glue to connect separate sauce bowls/ingredients
+    if strcmpi(foodType, 'satay') || strcmpi(foodType, 'laksa')
         glueRadius = 60; % Bridge the gap between sauce and plate
     else
         glueRadius = 50;
