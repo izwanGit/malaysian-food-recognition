@@ -135,18 +135,24 @@ function mask = hsvThreshold(img, foodType)
     coreFood = (S > 0.30) & (V > 0.20) & ~bgMask;
     
     % Candidate Rice (Any smooth/pale area that might be rice)
-    % A++ FIX (GREY PLATE KILLER): Enforce stricter condition for 'pale'
-    % Must generally be BRIGHT (Val > 0.4) and LOW SAT (Sat < 0.4)
-    % BUT exclude very low saturation grey (Sat < 0.05) which is usually the plate
-    riceCandidates = (S < 0.45) & (S > 0.05) & (V > 0.40) & bgMask;
+    % A++ FIX (SHADOW RICE ): Allow slightly darker rice (Val > 0.35) if it is significantly pale
+    riceCandidates = (S < 0.40) & (S > 0.02) & (V > 0.35) & bgMask;
+    
+    % A++ FIX (WOOD TABLE KILLER): Exclude "Woody" colors from backgrounds
+    % Wood is usually Orange/Brown (Hue 0.05-0.15) with medium saturation
+    isWood = (H > 0.02) & (H < 0.15) & (S > 0.3) & (S < 0.7);
+    % Only kill wood if we are NOT looking at Satay or deep fried chicken (which share these colors)
+    if ~any(strcmpi(foodType, {'satay', 'fried_chicken'}))
+        bgMask = bgMask & ~isWood;
+    end
     
     % A++ FIX (BLUE RICE KERABU): Allow Blue (Hue 0.5-0.7) for Nasi Lemak
     if strcmpi(foodType, 'nasi_lemak')
          isBlueRice = (H > 0.5) & (H < 0.7) & (S > 0.05) & (V > 0.3);
          riceCandidates = riceCandidates | isBlueRice;
-         % Disable floral mask for Nasi Lemak's blue rice? No, handle thoughtfully.
+         % Disable floral mask for Nasi Lemak's blue rice
          floralMask = floralMask & ~isBlueRice; 
-         bgMask = bgMask & ~isBlueRice; % Rescue blue from bg
+         bgMask = bgMask & ~isBlueRice; 
     end
 
     if any(coreFood(:)) && any(riceCandidates(:))

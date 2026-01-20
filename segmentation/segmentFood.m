@@ -256,7 +256,7 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         oneShapeContainer = false(size(mask));
         oneShapeContainer(statsGlue(bestIdx).PixelIdxList) = true;
         
-        if any(strcmpi(foodType, {'laksa', 'roti_canai', 'satay'}))
+        if any(strcmpi(foodType, {'laksa', 'roti_canai', 'satay', 'nasi_lemak', 'mixed_rice'}))
             maxArea = statsGlue(bestIdx).Area;
             fprintf('  DEBUG: Advanced Merging for [%s]\n', foodType);
             for i = 2:min(4, ccGlue.NumObjects)  % Check top 4 candidates
