@@ -281,8 +281,15 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         mask = mask & oneShapeContainer;
         
         % 4. Solidify: If the user wants a 'brush tool' feel, we should fill internal gaps
-        mask = imclose(mask, strel('disk', 5));
-        mask = imfill(mask, 'holes');
+        if any(strcmpi(foodType, {'laksa', 'roti_canai'}))
+             % A++ ULTIMATE POLISH: Aggressive smoothing for solid objects
+             mask = imclose(mask, strel('disk', 12));
+             mask = imfill(mask, 'holes');
+        else
+             % Standard polish for delicate shapes (Satay, Popiah)
+             mask = imclose(mask, strel('disk', 5));
+             mask = imfill(mask, 'holes');
+        end
         
         % 5. Final connected component check (Absolute Safety)
         ccFinal = bwconncomp(mask);

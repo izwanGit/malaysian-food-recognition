@@ -146,6 +146,30 @@ function mask = hsvThreshold(img, foodType)
         % Remove rescued pixels from background mask
         bgMask(rescuedRice) = false;
     end
+    
+    %% A++ FIX 2.5: ROTI TEXTURE RESCUE (Anti-Plate Logic)
+    % Roti is pale like the plate, but it is TEXTURED (flaky/spotted).
+    if strcmpi(lower(foodType), 'roti_canai')
+        grayImg = rgb2gray(img);
+        % Use standard deviation filtering to find textured areas
+        textMask = stdfilt(grayImg, ones(7,7)) > 4; % Catch flaky texture
+        % Only rescue if it's fairly bright (like bread) and roughly central
+        [rows, cols, ~] = size(img);
+        [X, Y] = meshgrid(1:cols, 1:rows);
+        centerDist = sqrt(((X-cols/2)/(cols/2)).^2 + ((Y-rows/2)/(rows/2)).^2);
+        rotiRescue = textMask & (V > 0.3) & (centerDist < 0.75);
+        
+        if any(rotiRescue(:))
+            fprintf('  Debug: Injected %d textured roti pixels.\n', sum(rotiRescue(:)));
+            bgMask(rotiRescue) = false;
+            % Also ensure these pixels survive the initial baseMask
+            if ~exist('rescuedRice', 'var')
+                rescuedRice = rotiRescue;
+            else
+                rescuedRice = rescuedRice | rotiRescue;
+            end
+        end
+    end
 
     %% Combine Final Masks
     % A++ CRITICAL FIX: Explicitly INJECT the rescued rice
