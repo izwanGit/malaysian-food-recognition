@@ -140,13 +140,19 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             
             % A++ EMERGENCY UPDATE: Broaden to catch "Shadow Rice" AND "Dirty Rice"
             % Sat < 0.45 (allow gravy colors), Val > 0.25 (allow dark shadows)
-            isRice = (values > 0.25) & (saturations < 0.45); 
+            isRice = (values > 0.25) & (saturations < 0.45);
+            
+            % SAUCE RESCUE (Satay/General): Keep Red/Orange Sauce (Sambal/Curry)
+            H = hsvMap(:,:,1);
+            hueVals = H(pixelIdx);
+            % Red is near 0 or 1. Orange is near 0.1.
+            isRedSauce = (saturations > 0.5) & (hueVals < 0.12 | hueVals > 0.9);
             
             % Selection Logic
             isInKeepClusters = ismember(clusterIdx, keepClusters);
             
-            % Keep pixels that are in Good Clusters OR look like Rice
-            keepPixels = pixelIdx(isInKeepClusters | isRice);
+            % Keep pixels that are in Good Clusters OR look like Rice OR look like Sauce
+            keepPixels = pixelIdx(isInKeepClusters | isRice | isRedSauce);
             
             refinedMask = false(rows, cols);
             refinedMask(keepPixels) = true;
@@ -195,7 +201,13 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     % The user wants exactly 1 coherent shape. No islands.
     
     % 1. Create a "Super Glue" mask to bridge meat and rice
-    glueSE = strel('disk', 50); 
+    % SATAY FIX: Use MASSIVE glue to connect separate sauce bowls
+    if strcmpi(foodType, 'satay')
+        glueRadius = 60; % Bridge the gap between sauce and plate
+    else
+        glueRadius = 50;
+    end
+    glueSE = strel('disk', glueRadius); 
     gluedMask = imclose(mask, glueSE);
     gluedMask = imfill(gluedMask, 'holes');
     

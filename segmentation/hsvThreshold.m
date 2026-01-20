@@ -35,7 +35,7 @@ function mask = hsvThreshold(img, foodType)
             % Use texture to capture thin structures
             satMin = 0.10;
             satMax = 1.0;
-            valMin = 0.08;  % Lower to capture darker sticks
+            valMin = 0.05;  % Lower significantly to capture DARK CHARRED MEAT
             valMax = 0.95;
 
         case 'laksa'
