@@ -35,7 +35,12 @@ function [foodClass, confidence, allScores] = classifyFoodCNN(img)
         cnnModel.valAccuracy = loaded.accuracy;
         cnnModel.inputSize = cnnModel.net.Layers(1).InputSize;
         
-        fprintf('  Model loaded (%.2f%% validation accuracy)\n', cnnModel.valAccuracy * 100);
+        if cnnModel.valAccuracy < 1.0
+            accScale = 100;
+        else
+            accScale = 1;
+        end
+        fprintf('  Model loaded (%.0f%% validation accuracy)\n', round(cnnModel.valAccuracy * accScale));
     end
     
     %% Load image if path provided
