@@ -165,11 +165,16 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             hueVals = H_vals(pixelIdx);
             isSauce = (saturations > 0.1) & (hueVals >= 0 & hueVals <= 0.22 | hueVals > 0.9);
             
+            % CHAR/DARK SPOT RESCUE: Keep charred/burnt bits on Roti/Satay
+            % Very dark (Val < 0.25) but in the right location (part of a chosen cluster)
+            % Or dark but with some saturation (brown/burnt)
+            isChar = (values < 0.35) & (saturations > 0.15) & (hueVals < 0.3);
+            
             % Selection Logic
             isInKeepClusters = ismember(clusterIdx, keepClusters);
             
-            % Keep pixels that are in Good Clusters OR look like Rice OR look like Sauce
-            keepPixels = pixelIdx(isInKeepClusters | isRice | isSauce);
+            % Keep pixels that are in Good Clusters OR look like Rice OR look like Sauce OR look like Char
+            keepPixels = pixelIdx(isInKeepClusters | isRice | isSauce | isChar);
             
             refinedMask = false(rows, cols);
             refinedMask(keepPixels) = true;
@@ -229,24 +234,42 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     gluedMask = imclose(mask, glueSE);
     gluedMask = imfill(gluedMask, 'holes');
     
-    % 2. Pick the ABSOLUTE BEST candidate for the food (Central + Large)
+    % 2. Pick the BEST candidates for the food
     ccGlue = bwconncomp(gluedMask, 4);
     if ccGlue.NumObjects > 0
-        statsGlue = regionprops(ccGlue, 'Area', 'Centroid');
+        statsGlue = regionprops(ccGlue, 'Area', 'Centroid', 'PixelIdxList');
         imageCenter = [cols/2, rows/2];
         scores = zeros(1, ccGlue.NumObjects);
         
         for i = 1:ccGlue.NumObjects
             dist = norm(statsGlue(i).Centroid - imageCenter);
-            % Heavy Centrality Bias: Area / (dist^2 + 100)
+            % Centrality Bias
             scores(i) = statsGlue(i).Area / (dist^2 + 100);
         end
         
-        [~, bestIdx] = max(scores);
+        [~, sortedIdx] = sort(scores, 'descend');
+        bestIdx = sortedIdx(1);
         
-        % 3. Enforce 1 Shape: Zero out EVERYTHING else
+        % A++ ADVANCED MERGING: For fragmented classes (Roti/Laksa/Satay)
+        % Merge nearby significant islands into the main shapeContainer
         oneShapeContainer = false(size(mask));
-        oneShapeContainer(ccGlue.PixelIdxList{bestIdx}) = true;
+        oneShapeContainer(statsGlue(bestIdx).PixelIdxList) = true;
+        
+        if any(strcmpi(foodType, {'laksa', 'roti_canai', 'satay'}))
+            maxArea = statsGlue(bestIdx).Area;
+            for i = 2:min(4, ccGlue.NumObjects)  % Check top 4 candidates
+                currentIdx = sortedIdx(i);
+                currentArea = statsGlue(currentIdx).Area;
+                currentDist = norm(statsGlue(currentIdx).Centroid - imageCenter);
+                
+                % If it's fairly big AND reasonably central, it's definitely food!
+                if (currentArea > 0.15 * maxArea) && (currentDist < 180)
+                    oneShapeContainer(statsGlue(currentIdx).PixelIdxList) = true;
+                end
+            end
+            % Re-close everything to bridge the newly merged islands
+            oneShapeContainer = imclose(oneShapeContainer, strel('disk', 30));
+        end
         
         % Safety Margin: Expand container to catch edge rice (Restored & Increased)
         oneShapeContainer = imdilate(oneShapeContainer, strel('disk', 25));

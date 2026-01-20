@@ -119,8 +119,13 @@ function mask = hsvThreshold(img, foodType)
     % 3. Highlights (Blown out): Very high V, Zero Sat
     highlightMask = (V > 0.95) & (S < 0.05);
 
+    % 4. A++ FIX: FLORAL MOTIF KILLER (Blue/Purple/Cyan on plates)
+    % These colors basically NEVER appear in our food classes.
+    isNonFoodColor = (H > 0.45) & (H < 0.85) & (S > 0.15);
+    floralMask = isNonFoodColor;
+
     % Combine and dilate
-    bgMask = platePaperMask | shadowMask | highlightMask;
+    bgMask = platePaperMask | shadowMask | highlightMask | floralMask;
     bgMask = imdilate(bgMask, strel('disk', 3));
 
     %% A++ FIX 2: EXTREME RICE RESCUE (Connectivity-Based)
