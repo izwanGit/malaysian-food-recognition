@@ -119,10 +119,15 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         spatialFeat = exp(-(x_center_dist.^2 + y_center_dist.^2) * 5); % Sharper Gaussian
         
         % Combined Features: Color (2x), Texture (1x), Spatial (1.5x)
-        features = [featS * 2.0, featE, spatialFeat * 1.5];
+        features = double([featS * 2.0, featE, spatialFeat * 1.5]);
+        
+        % Ensure no NaNs
+        features(isnan(features)) = 0;
         
         try
-            [clusterIdx, centers] = kmeans(features, 3, 'Replicates', 3);
+            % SMART FIX: Use 'EmptyAction','singleton' to prevent crashes if a cluster disappears
+            [clusterIdx, centers] = kmeans(features, 3, 'Replicates', 2, ...
+                'MaxIter', 100, 'EmptyAction', 'singleton');
             
             % Score Clusters: High Score = Likely Food
             % Score = Sat + Texture + Spatial
