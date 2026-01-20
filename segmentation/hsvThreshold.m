@@ -106,6 +106,11 @@ function mask = hsvThreshold(img, foodType)
     isPale = (S < 0.20) & (V > 0.40);
     platePaperMask = isSmooth & isPale;
     
+    % A++ FIX: Don't let the plate-killer eat creamy LAKSA/CURRY soup
+    % If it's orange/yellow (Hue 0.05-0.22), it's probably food!
+    isCurryHue = (H > 0.05) & (H < 0.22);
+    platePaperMask = platePaperMask & ~isCurryHue;
+    
     % 2. Deep Shadow (External): Very low V
     shadowMask = (V < 0.15);
     

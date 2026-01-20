@@ -158,17 +158,16 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
             % Sat < 0.45 (allow gravy colors), Val > 0.25 (allow dark shadows)
             isRice = (values > 0.25) & (saturations < 0.45);
             
-            % SAUCE RESCUE (Satay/General): Keep Red/Orange Sauce (Sambal/Curry)
-            H = hsvMap(:,:,1);
-            hueVals = H(pixelIdx);
-            % Red is near 0 or 1. Orange is near 0.1.
-            isRedSauce = (saturations > 0.5) & (hueVals < 0.12 | hueVals > 0.9);
+            % UNIVERSAL SAUCE RESCUE: Keep Red, Orange, and Yellow (Sambal/Curry/Lemak)
+            % Hue 0.0 to 0.22 covers Red/Orange/Yellow. 
+            % Reduced Sat requirement to 0.3 to catch creamy soup.
+            isSauce = (saturations > 0.3) & (hueVals >= 0 & hueVals <= 0.22 | hueVals > 0.9);
             
             % Selection Logic
             isInKeepClusters = ismember(clusterIdx, keepClusters);
             
             % Keep pixels that are in Good Clusters OR look like Rice OR look like Sauce
-            keepPixels = pixelIdx(isInKeepClusters | isRice | isRedSauce);
+            keepPixels = pixelIdx(isInKeepClusters | isRice | isSauce);
             
             refinedMask = false(rows, cols);
             refinedMask(keepPixels) = true;
@@ -217,9 +216,11 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     % The user wants exactly 1 coherent shape. No islands.
     
     % 1. Create a "Super Glue" mask to bridge meat and rice
-    % SATAY/LAKSA FIX: Use MASSIVE glue to connect separate sauce bowls/ingredients
-    if strcmpi(foodType, 'satay') || strcmpi(foodType, 'laksa')
-        glueRadius = 60; % Bridge the gap between sauce and plate
+    % LAKSA/SATAY FIX: Use HYPER glue (80px) for Laksa to bridge soup gaps
+    if strcmpi(foodType, 'laksa')
+        glueRadius = 80; 
+    elseif strcmpi(foodType, 'satay')
+        glueRadius = 60;
     else
         glueRadius = 50;
     end
