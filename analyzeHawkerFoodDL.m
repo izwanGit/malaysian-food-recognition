@@ -29,9 +29,11 @@ function results = analyzeHawkerFoodDL(img)
     %% Step 2: Classification (CNN)
     try
         [foodClass, confidence] = classifyFoodCNN(processedImg);
+        fprintf('  CNN Prediction: %s (%.1f%%)\n', foodClass, confidence * 100);
     catch ME
         warning('CNN not available: %s. Falling back to SVM.', ME.message);
         [foodClass, confidence] = classifyFood(processedImg);
+        fprintf('  SVM Fallback Prediction: %s (%.1f%%)\n', foodClass, confidence * 100);
     end
     
     %% Step 3: Segmentation (use classical - it's reliable)

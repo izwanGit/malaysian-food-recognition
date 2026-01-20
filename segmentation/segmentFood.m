@@ -39,6 +39,7 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     imgEnhanced = lab2rgb(labImg);
     
     %% STEP 1: Geometry-Aware HSV Thresholding
+    fprintf('  DEBUG: segmentFood foodType = [%s]\n', foodType);
     hsvMask = hsvThreshold(imgEnhanced, foodType);
     
     %% STEP 2: MULTI-SCALE MORPHOLOGICAL CLEANING
@@ -257,13 +258,15 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         
         if any(strcmpi(foodType, {'laksa', 'roti_canai', 'satay'}))
             maxArea = statsGlue(bestIdx).Area;
+            fprintf('  DEBUG: Advanced Merging for [%s]\n', foodType);
             for i = 2:min(4, ccGlue.NumObjects)  % Check top 4 candidates
                 currentIdx = sortedIdx(i);
                 currentArea = statsGlue(currentIdx).Area;
                 currentDist = norm(statsGlue(currentIdx).Centroid - imageCenter);
                 
-                % If it's fairly big AND reasonably central, it's definitely food!
-                if (currentArea > 0.15 * maxArea) && (currentDist < 180)
+                % A++ LOOSER MARGINS: Area > 5% (was 15%), Dist < 250 (was 180)
+                if (currentArea > 0.05 * maxArea) && (currentDist < 250)
+                    fprintf('    -> Merging island %d (Area: %d, Dist: %.1f)\n', i, currentArea, currentDist);
                     oneShapeContainer(statsGlue(currentIdx).PixelIdxList) = true;
                 end
             end
