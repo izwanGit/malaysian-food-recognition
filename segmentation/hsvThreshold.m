@@ -97,16 +97,63 @@ function mask = hsvThreshold(img, foodType)
     texture = entropyfilt(V, true(5));
     plateMask = (S < 0.05) & (V > 0.90) & (texture < 0.5);
     
-    %% Combine masks
-    if strcmpi(foodType, 'satay')
-        % For satay: be aggressive about keeping everything
-        mask = satMask & valMask;
-    else
-        baseMask = satMask & valMask;
-        % Don't remove plate yet - let K-Means in segmentFood handle it
-        % We want to capture EVERYTHING first (Rice included)
-        mask = baseMask; 
+    %% A++ FIX 1: ULTRA BACKGROUND KILLER (Texture + Intensity + Spatial)
+    % 1. Smooth White/Beige (Plate/Paper): Low S, Low Texture
+    isSmooth = (localStd < 0.10);
+    isPale = (S < 0.20) & (V > 0.40);
+    platePaperMask = isSmooth & isPale;
+    
+    % 2. Deep Shadow (External): Very low V
+    shadowMask = (V < 0.15);
+    
+    % 3. Highlights (Blown out): Very high V, Zero Sat
+    highlightMask = (V > 0.95) & (S < 0.05);
+
+    % Combine and dilate
+    bgMask = platePaperMask | shadowMask | highlightMask;
+    bgMask = imdilate(bgMask, strel('disk', 3));
+
+    %% A++ FIX 2: EXTREME RICE RESCUE (Connectivity-Based)
+    % We define RICE as: [Smooth/Pale] pixels that are [CONNECTED] to [Colorful Food].
+    
+    % Initial Food Core (High Saturation, Colorful)
+    coreFood = (S > 0.30) & (V > 0.20) & ~bgMask;
+    
+    % Candidate Rice (Any smooth/pale area that might be rice)
+    riceCandidates = (S < 0.45) & (V > 0.25) & bgMask;
+    
+    if any(coreFood(:)) && any(riceCandidates(:))
+        % Merge all rice that is near the core food
+        % Use a large proximity (40 pixels) to bridge gaps in nasi lemak boxes
+        foodZone = imdilate(coreFood, strel('disk', 40));
+        rescuedRice = riceCandidates & foodZone;
+        
+        % Remove rescued pixels from background mask
+        bgMask(rescuedRice) = false;
     end
+
+    %% Combine Final Masks
+    % A++ CRITICAL FIX: Explicitly INJECT the rescued rice
+    % Previously, satMask would kill the rice even if we rescued it from bgMask.
+    % Now we force-add it.
+    baseMask = satMask & valMask & ~bgMask;
+    
+    if exist('rescuedRice', 'var')
+        baseMask = baseMask | rescuedRice;
+        fprintf('  Debug: Injected %d rescued rice pixels.\n', sum(rescuedRice(:)));
+    end
+    
+    %% A++ FIX 3: SPATIAL LOCKDOWN (Middle Focus)
+    % Force kill anything in the outer 30% of the image
+    [rows, cols] = size(S);
+    [X, Y] = meshgrid(1:cols, 1:rows);
+    distMap = sqrt(((X - (cols/2))/(cols/2)).^2 + ((Y - (rows/2))/(rows/2)).^2);
+    
+    % Hard kill in corners (dist > 0.7)
+    % Unless it's extremely high saturation (Entrees touching edge)
+    mask = baseMask;
+    cornerKill = (distMap > 0.7) & (S < 0.5);
+    mask(cornerKill) = false;
     
     %% Ensure Spatial Coherence
     % Keep largest connected components (Top 3) to allow for separated food items

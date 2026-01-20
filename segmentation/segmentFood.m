@@ -87,9 +87,11 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         
         cleanMask(cc.PixelIdxList{i}) = regionMask(cc.PixelIdxList{i});
     end
-    %% STEP 3.5: ADAPTIVE K-MEANS REFINEMENT (The "Genius" Loophole)
-    % Cluster into Food (Textured/High Sat) vs Background (Smooth/Low Sat)
+    %% STEP 3.5: ADAPTIVE K-MEANS REFINEMENT (The "Smart 3-Class" Fix)
+    % Cluster into 3 classes: [Food, Rice/Ambiguous, Background]
+    % Strategy: Identify the "Background" cluster and remove it. Keep the rest.
     
+    fprintf('  Debug: Smart 3-Class K-Means...\n');
     pixelIdx = find(cleanMask);
     if numel(pixelIdx) > 1000
         % Extract features
@@ -103,117 +105,137 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         featS = S(pixelIdx);
         featE = entropyMap(pixelIdx);
         
-        % Normalize features
+        % Normalize
         featS = (featS - min(featS)) / (max(featS) - min(featS) + eps);
         featE = (featE - min(featE)) / (max(featE) - min(featE) + eps);
         
-        % CRITICAL WEIGHTING: Color (Saturation) is more reliable than Texture for wrapper vs food.
-        % Food = Colorful. Wrapper/Rice = Dull.
-        featS = featS * 2.5; 
+        % Feature 3: Spatial Bias (Centrality)
+        % Wrappers/Background are usually at the edges. Food is central.
+        [X, Y] = meshgrid(1:cols, 1:rows);
+        x_norm = X(pixelIdx) / cols;
+        y_norm = Y(pixelIdx) / rows;
+        x_center_dist = abs(x_norm - 0.5);
+        y_center_dist = abs(y_norm - 0.5);
+        spatialFeat = exp(-(x_center_dist.^2 + y_center_dist.^2) * 5); % Sharper Gaussian
         
-        % K-Means Clustering (k=2)
-        features = [featS, featE];
+        % Combined Features: Color (2x), Texture (1x), Spatial (1.5x)
+        features = [featS * 2.0, featE, spatialFeat * 1.5];
+        
         try
-            [clusterIdx, centers] = kmeans(features, 2, 'Replicates', 3);
+            [clusterIdx, centers] = kmeans(features, 3, 'Replicates', 3);
             
-            % Identify "Food" Cluster:
-            % Food = Higher Texture OR Higher Saturation (usually)
-            % Background = Smoother AND Lower Saturation (usually)
-            meanTexture1 = centers(1, 2);
-            meanTexture2 = centers(2, 2);
-            meanSat1 = centers(1, 1);
-            meanSat2 = centers(2, 1);
+            % Score Clusters: High Score = Likely Food
+            % Score = Sat + Texture + Spatial
+            % centers(:,1)=Sat, (:,2)=Tex, (:,3)=Spatial
+            scores = centers(:,1) + centers(:,2) + centers(:,3);
             
-            % Use combined score (Sat + Texture) to pick food cluster
-            score1 = meanSat1 + meanTexture1;
-            score2 = meanSat2 + meanTexture2;
+            [~, sortedIdx] = sort(scores, 'descend');
             
-            foodCluster = 1;
-            if score2 > score1
-                foodCluster = 2;
-            end
+            % sortedIdx(1) = Best Food (Chicken, Sambal)
+            % sortedIdx(2) = Ambiguous (Rice, Light Gravy)
+            % sortedIdx(3) = Background (Wrapper, Plate, Table)
             
-            % RICE RESCUE MISSION:
-            % Rice looks like background (Smooth, Low Saturation).
-            % We must PROTECT it from being discarded.
-            % Rice Profile: Bright (V > 0.70) AND Low Saturation (S < 0.25)
-            values = V(pixelIdx);
-            saturations = S(pixelIdx);
-            entropies = entropyMap(pixelIdx);
+            % Logic: Keep Top 2 clusters. Drop the Worst one.
+            keepClusters = sortedIdx(1:2);
             
-            % Stricter check: Must be Bright AND Low Sat
-            isRice = (values > 0.70) & (saturations < 0.25);
+            % A++ EMERGENCY UPDATE: Broaden to catch "Shadow Rice" AND "Dirty Rice"
+            % Sat < 0.45 (allow gravy colors), Val > 0.25 (allow dark shadows)
+            isRice = (values > 0.25) & (saturations < 0.45); 
             
-            isFoodCluster = (clusterIdx == foodCluster);
+            % Selection Logic
+            isInKeepClusters = ismember(clusterIdx, keepClusters);
             
-            % Keep pixels that are EITHER in the Food Cluster OR look like Rice
-            keepPixels = pixelIdx(isFoodCluster | isRice);
+            % Keep pixels that are in Good Clusters OR look like Rice
+            keepPixels = pixelIdx(isInKeepClusters | isRice);
             
             refinedMask = false(rows, cols);
             refinedMask(keepPixels) = true;
             
-            % Process refined mask
+            % Cleanup
             refinedMask = imclose(refinedMask, strel('disk', 3));
             refinedMask = imfill(refinedMask, 'holes');
-            
-            % Remove tiny noise spots that might have been "rescued" (e.g. table reflections)
-            refinedMask = bwareaopen(refinedMask, 200);
+            refinedMask = bwareaopen(refinedMask, 150); % Lighter cleanup for rice grains
             
             cleanMask = refinedMask;
-            
+            fprintf('  Debug: K-Means kept %d pixels (Dropped worst cluster).\n', sum(cleanMask(:)));
         catch
-            % K-means failed, keep original
+            fprintf('  Debug: K-Means failed, keeping original.\n');
         end
     end
+    
     %% STEP 4: EDGE-GUIDED ACTIVE CONTOURS
-    if sum(cleanMask(:)) > 0
-        % A++ ENHANCEMENT: Edge-based initialization
+    currentMaskSize = sum(cleanMask(:));
+    if currentMaskSize > 500
+        backupMask = cleanMask; 
+        
         grayImg = rgb2gray(img);
-        edges = edge(grayImg, 'canny', [0.03 0.1]);
+        % Gentle Active Contour (Gentle on rice)
+        mask = activecontour(img, cleanMask, 60, 'Chan-Vese', 'ContractionBias', -0.02);
+        mask = activecontour(grayImg, mask, 80, 'edge'); 
         
-        % Create distance map from edges
-        edgeDist = bwdist(edges);
-        
-        % Refine mask: pixels far from edges but near current boundary
-        currentBoundary = bwperim(cleanMask);
-        boundaryDist = bwdist(currentBoundary);
-        
-        % Where we have edges but mask doesn't align, adjust
-        misaligned = (edgeDist < 3) & (boundaryDist > 5);
-        if any(misaligned(:))
-            % Use edges to guide mask expansion/contraction
-            se = strel('disk', 2);
-            misalignedDilated = imdilate(misaligned, se);
-            
-            % Expand mask to meet nearby edges
-            cleanMask = cleanMask | misalignedDilated;
-        end
-        
-        %% MULTI-PHASE ACTIVE CONTOURS
-        % Phase 1: Coarse adjustment
-        mask = activecontour(img, cleanMask, 50, 'Chan-Vese');
-        
-        % Phase 2: Edge-based refinement
-        mask = activecontour(grayImg, mask, 100, 'edge');
-        
-        % Phase 3: Final smoothing
-        mask = activecontour(img, mask, 50, 'Chan-Vese');
-        
-        % [REMOVED] Gradient Barrier - it was removing smooth food regions (rice/tofu)
-        % The active contour 'edge' method is sufficient for boundary adhearence.
-        
-        % CRITICAL SAFETY CHECK:
-        % If active contours collapsed the mask to nothing (common with weak edges),
-        % revert to the original morphological mask.
+        % Safety Check
         if sum(mask(:)) < 100
-             mask = cleanMask;
+             mask = backupMask;
+        elseif sum(mask(:)) < (0.2 * currentMaskSize)
+             mask = backupMask;
         end
     else
         mask = cleanMask;
     end
     
+    % FINAL EMERGENCY FALLBACK
+    if sum(mask(:)) == 0 && currentMaskSize > 0
+        mask = cleanMask;
+    end
+    
     %% STEP 5: SEMANTIC FILLING (Fix Holes in Solid Objects)
     mask = imfill(mask, 'holes');
+
+    %% A++ FIX 5: THE "ONE SHAPE" FINALIZER (Brush Tool Mode)
+    % The user wants exactly 1 coherent shape. No islands.
+    
+    % 1. Create a "Super Glue" mask to bridge meat and rice
+    glueSE = strel('disk', 50); 
+    gluedMask = imclose(mask, glueSE);
+    gluedMask = imfill(gluedMask, 'holes');
+    
+    % 2. Pick the ABSOLUTE BEST candidate for the food (Central + Large)
+    ccGlue = bwconncomp(gluedMask, 4);
+    if ccGlue.NumObjects > 0
+        statsGlue = regionprops(ccGlue, 'Area', 'Centroid');
+        imageCenter = [cols/2, rows/2];
+        scores = zeros(1, ccGlue.NumObjects);
+        
+        for i = 1:ccGlue.NumObjects
+            dist = norm(statsGlue(i).Centroid - imageCenter);
+            % Heavy Centrality Bias: Area / (dist^2 + 100)
+            scores(i) = statsGlue(i).Area / (dist^2 + 100);
+        end
+        
+        [~, bestIdx] = max(scores);
+        
+        % 3. Enforce 1 Shape: Zero out EVERYTHING else
+        oneShapeContainer = false(size(mask));
+        oneShapeContainer(ccGlue.PixelIdxList{bestIdx}) = true;
+        
+        % Safety Margin: Expand container to catch edge rice (Restored & Increased)
+        oneShapeContainer = imdilate(oneShapeContainer, strel('disk', 25));
+        
+        % Filter original result
+        mask = mask & oneShapeContainer;
+        
+        % 4. Solidify: If the user wants a 'brush tool' feel, we should fill internal gaps
+        mask = imclose(mask, strel('disk', 5));
+        mask = imfill(mask, 'holes');
+        
+        % 5. Final connected component check (Absolute Safety)
+        ccFinal = bwconncomp(mask);
+        if ccFinal.NumObjects > 1
+             [~, largestFinal] = max(cellfun(@numel, ccFinal.PixelIdxList));
+             mask = false(size(mask));
+             mask(ccFinal.PixelIdxList{largestFinal}) = true;
+        end
+    end
     
     %% STEP 6: GLOBAL CONTEXT REFINEMENT
     % Use superpixels helper if available
@@ -227,6 +249,7 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
         mask = bwareaopen(mask, 500);
     end
     
+
     %% STEP 7: CONTAINER REMOVAL (Plates/Trays)
     % Detect circular/rectangular containers using Hough Transform
     grayImg = rgb2gray(img);

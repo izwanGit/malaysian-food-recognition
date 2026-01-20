@@ -21,30 +21,28 @@ function cleanMask = morphologyClean(mask, options)
         options = struct();
     end
     
-    openRadius = getfield_default(options, 'openRadius', 5);
+    openRadius = getfield_default(options, 'openRadius', 3);
     closeRadius = getfield_default(options, 'closeRadius', 10);
-    minArea = getfield_default(options, 'minArea', 500);
+    minArea = getfield_default(options, 'minArea', 50); % Level 3: Smallest grains saved
     
     %% Ensure mask is binary
     mask = mask > 0;
     
     %% Step 1: Opening - Remove small noise objects
-    % Opening = erosion followed by dilation
     seOpen = strel('disk', openRadius);
     mask = imopen(mask, seOpen);
     
     %% Step 2: Closing - Fill small holes and gaps
-    % Closing = dilation followed by erosion
     seClose = strel('disk', closeRadius);
     mask = imclose(mask, seClose);
     
     %% Step 3: Fill holes completely
     mask = imfill(mask, 'holes');
     
-    %% Step 4: Remove small objects
+    %% Step 4: Remove small objects (RE-INTRODUCED)
     mask = bwareaopen(mask, minArea);
     
-    %% Step 5: Smooth boundaries using additional closing
+    %% Step 5: Smooth boundaries
     seSmooth = strel('disk', 3);
     mask = imclose(mask, seSmooth);
     
