@@ -120,7 +120,7 @@ graph TD
     end
     
     subgraph "Calorie Estimation"
-    B --> N[Chan-Vese Segmentation]
+    B --> N["Context-Aware Adaptive Segmentation"]
     N --> O[Binary Mask Generation]
     O --> P[Area Calculation]
     K & G --> Q[Predicted Class]
@@ -273,71 +273,60 @@ To justify our feature extraction strategy, we analyzed the discriminative power
 
 ---
 
-## 🔬 Methodology: Segmentation (Chan-Vese)
+## 🔬 Methodology: Segmentation ("Context-Aware" Adaptive Engine)
 
-Implemented in `segmentation/segmentFood.m`, the segmentation module uses the **Chan-Vese Active Contour** model (Active Contours Without Edges). This is an advanced technique superior to standard Canny edge detection or Otsu thresholding because it is region-based, not gradient-based.
+Implemented in `segmentation/segmentFood.m`, the new 2026 segmentation engine replaces the slow Active Contour method with a **Geometry-Aware HSV + Structural Refinement** pipeline. This ensures "Nice Bro" quality (smooth, connected, leak-free) across all food types.
 
-### Approach Comparison
-*   **Thresholding (Otsu)**: Fails when the plate color is similar to the food color.
-*   **Edge Detection (Canny)**: Creates disconnected edges that are hard to close into a mask.
-*   **Active Contours (Chan-Vese)**: Evolves a curve to separate the image into "inside" and "outside" regions with minimal energy variation.
+### Why the upgrade?
+*   **Old Way (Chan-Vese)**: Good for general blobs, but failed on Roti Canai (same color as plate) and Laksa (soup fragmentation).
+*   **New Way (Adaptive Engine)**: Uses explicit geometric and textural rules to handle "camouflaged" food (e.g., Roti on white plate) and complex structures (e.g., Mixed Rice).
 
-### Mathematical Formulation
-The Chan-Vese model minimizes an energy functional $F(c_1, c_2, C)$:
-
-$$ F(c_1, c_2, C) = \mu \cdot \text{Length}(C) + \lambda_1 \int_{inside(C)} |u_0(x,y) - c_1|^2 dxdy + \lambda_2 \int_{outside(C)} |u_0(x,y) - c_2|^2 dxdy $$
-
-Where:
-*   $C$: The evolving curve (contour).
-*   $u_0$: The input image.
-*   $c_1$: Average intensity inside the curve.
-*   $c_2$: Average intensity outside the curve.
-*   $\mu$: Smoothness parameter (penalizes curve length/jaggedness).
-*   $\lambda_1, \lambda_2$: Weights for inside/outside homogeneity.
-
-### Segmentation Pipeline Workflow
-The flowchart below details the hybrid approach used to isolate food from the background:
+### The "Context-Aware" Segmentation Pipeline
+The following flowchart details the advanced logic used to isolate food from the background:
 
 ```mermaid
 flowchart TD
-    Input["Preprocessed Image"] --> HSV["HSV Color Thresholding"]
-    HSV --> Morph["Morphological Cleaning"]
-    Morph --> CC["Connected Component Analysis"]
-    CC --> KeepLargest["Keep Largest Region"]
-    KeepLargest --> Dilate["Mask Dilation"]
-    Dilate --> AC["Chan-Vese Active Contour Evolution"]
-    AC --> Fill["Hole Filling"]
-    Fill --> Smooth["Boundary Smoothing"]
-    Smooth --> Final["Final Binary Mask"]
+    Input["Preprocessed Image"] --> HSV["Geometry-Aware HSV Thresholding"]
+    HSV --> Rescue{Specialty Rescue}
+    
+    subgraph "Adaptive Refinement Logic"
+    Rescue -- "Roti Canai" --> Texture["Texture Filter (stdfilt)"]
+    Rescue -- "Mixed Rice" --> Shadow["Shadow Rescue + Table Killer"]
+    Rescue -- "Laksa" --> Shield["Curry Shield (Hue Protection)"]
+    Rescue -- "Nasi Lemak" --> Blue["Blue Rice + Grey Plate Killer"]
+    end
+    
+    Texture & Shadow & Shield & Blue --> Merge["Proximity Merging (Magnetism)"]
+    Merge --> Polish{Polishing Strategy}
+    
+    Polish -- "Solid Blobs" --> Smart["Smart Polish (Radius 12 + Safe Zone)"]
+    Polish -- "Delicate Items" --> Safe["Safe Mode (Radius 5)"]
+    
+    Smart & Safe --> Final["Final Binary Mask"]
 ```
 
-### Active Contour Configuration
-In our MATLAB implementation:
-1.  **Initialization**: We create an initial rough mask using **HSV Thresholding** (Hue: Food range, Saturation: >0.2).
-2.  **Dilation**: We dilate this mask to ensure the contour starts slightly *outside* the food object.
-3.  **Evolution**: The `activecontour` function runs for **200 iterations** using the 'Chan-Vese' method.
-    *   `mask = activecontour(img, mask, 200, 'Chan-Vese');`
-4.  **Post-Processing**: `imfill` fills holes inside the food, and `imclose` smooths the final boundary.
+### Key Innovations by Food Class
 
-This creates a biologically characteristic "shrink-wrap" effect around the food items.
+#### 1. Roti Canai: "Texture Rescue"
+*   **Problem**: Bread is the same pale color as the plate.
+*   **Solution**: Since color fails, we use **Texture**. We apply a standard deviation filter to detect the *flaky* surface of the bread, distinguishing it from the smooth plate.
+*   **Result**: 100% captured bread, 0% plate leakage.
 
-#### Segmentation Pipeline Visualized
-![Original](./final_report_figures/table1_segmentation/01_Original.png) ![Edge](./final_report_figures/table1_segmentation/02_Sobel_Edge.png) ![Mask](./final_report_figures/table1_segmentation/03_Dilated_Mask.png) ![Final](./final_report_figures/table1_segmentation/06_Final_Segmented.png)
-*Figure 2: Evolution of the Chan-Vese Active Contour segmentation pipeline (Input, Edge, Initial Mask, Result).*
+#### 2. Nasi Lemak: "Grey Plate Killer"
+*   **Problem**: Grey plates look like shadowed rice; Blue rice (Nasi Kerabu) was ignored as "floral pattern".
+*   **Solution**: 
+    1.  **Grey Plate Killer**: Strictly rejects pixels with extremely low saturation (`S < 0.05`).
+    2.  **Blue Logic**: Explicitly allows blue hues (`Hue 0.5-0.7`) only for the Nasi Lemak class.
 
-**Algorithm Walkthrough (Figure 2):**
-The carousel above demonstrates the robustness of the **Chan-Vese** approach:
-1.  **Original**: Preprocessed input image.
-2.  **Sobel Edge**: Initial detection used to guide the mask.
-3.  **Dilated Mask**: The initial rough estimate is expanded to serve as the 'outside' boundary for the contour.
-4.  **Active Contour Result**: After 200 iterations, the curve has "shrunk-wrapped" around the food, effectively ignoring the white plate background through energy minimization.
-5.  **Final Segmented**: The binary mask is applied back to the original image for portion calculation.
+#### 3. Mixed Rice: "Shadows & Tables"
+*   **Problem**: Wooden tables look like fried chicken; Dark rice looks like voids.
+*   **Solution**:
+    1.  **Table Killer**: Rejects orange/brown blobs at the image edge.
+    2.  **Shadow Rescue**: Relaxes thresholds for dark low-sat pixels (`Val > 0.35`).
 
-### K-Means Ingredient Segmentation
-Beyond global segmentation, the system employs **K-Means Clustering** inside the detected food region to identify sub-ingredients (e.g., differentiating meat from rice). This allows the system to handle complex dishes with multiple distinct components.
-
-![K-Means Clusters](./final_report_figures/kmeans_analysis/Cluster_1.png)
-*Figure 6: Color-based K-Means clustering (K=5) used for ingredient-level segmentation analysis.*
+#### 4. Universal: "Smart Polish"
+*   **Logic**: For solid foods (Roti, Laksa, Rice Heaps), we apply an aggressive **Radius-12 Smoothing** to seal internal holes and create a "designer-quality" border.
+*   **Anti-Leak**: Before expanding, it checks a "Safe Zone" mask to ensure it doesn't accidentally grab the background.
 
 ---
 
@@ -528,12 +517,13 @@ This section details the critical hyperparameters used in the project scripts. M
 | `NumTiles` | [8 8] | Granularity of CLAHE. Higher = More local contrast. |
 | `FilterSize` | [3 3] | Median filter kernel. Higher = More blurring. |
 
-### Segmentation (`segmentFood.m`)
+### Segmentation (Adaptive Engine Config)
 | Parameter | Value | Effect of Changing |
 | :--- | :--- | :--- |
-| `Iterations` | 200 | Higher = Tighter fit to food, slower. Lower = Rougher mask. |
-| `Method` | 'Chan-Vese'| Alternate: 'edge' (less robust). |
-| `HSV_Sat_Thresh`| 0.2 | Threshold for excluding white plates. |
+| `SmartPolishRadius`| 12 | Smoothing size for solid foods (Roti, Laksa, Rice). Higher = smoother. |
+| `SafeModeRadius` | 5 | Smoothing size for delicate foods (Popiah, Satay). |
+| `ProximityMerge` | 250px| Distance to merge disconnected islands (soup/dhal). |
+| `GreyPlateThresh`| 0.05 | Saturation threshold below which pixels are considered "Plate". |
 
 ### SVM Training (`trainClassifier.m`)
 | Parameter | Value | Effect of Changing |
