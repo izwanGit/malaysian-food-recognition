@@ -1,16 +1,5 @@
 %% HSV THRESHOLD - Color-based Food Region Detection
-% Detects food regions using HSV color space thresholding
-%
-% Syntax:
-%   mask = hsvThreshold(img)
-%   mask = hsvThreshold(img, foodType)
-%
-% Inputs:
-%   img      - RGB image
-%   foodType - Optional food class for optimized thresholds
-%
-% Outputs:
-%   mask - Binary mask where true = likely food region
+% Detects food regions using HSV color space thresholding with edge awareness
 
 function mask = hsvThreshold(img, foodType)
     %% Convert to HSV color space
@@ -19,9 +8,9 @@ function mask = hsvThreshold(img, foodType)
     end
     hsvImg = rgb2hsv(img);
     
-    H = hsvImg(:,:,1);  % Hue [0-1]
-    S = hsvImg(:,:,2);  % Saturation [0-1]
-    V = hsvImg(:,:,3);  % Value [0-1]
+    H = hsvImg(:,:,1);
+    S = hsvImg(:,:,2);
+    V = hsvImg(:,:,3);
     
     %% Define thresholds based on food type
     if nargin < 2 || isempty(foodType)
@@ -30,27 +19,25 @@ function mask = hsvThreshold(img, foodType)
     
     switch lower(foodType)
         case 'nasi_lemak'
-            % Nasi lemak: white rice, green leaves, red sambal
-            % Exclude very low saturation (table) and very dark
-            satMin = 0.08;
+            satMin = 0.03;  % Lower for white rice
             satMax = 1.0;
             valMin = 0.15;
             valMax = 1.0;
             
         case 'roti_canai'
-            % Roti canai: golden brown flatbread
             satMin = 0.10;
             satMax = 0.8;
             valMin = 0.20;
             valMax = 0.95;
             
         case 'satay'
-            % Satay: brown meat on sticks
-            satMin = 0.15;
+            % CRITICAL FIX FOR SATAY STICKS:
+            % Use texture to capture thin structures
+            satMin = 0.10;
             satMax = 1.0;
-            valMin = 0.10;
+            valMin = 0.08;  % Lower to capture darker sticks
             valMax = 0.95;
-            
+
         case 'laksa'
             % Laksa: orange/red soup with noodles
             satMin = 0.10;
@@ -79,44 +66,67 @@ function mask = hsvThreshold(img, foodType)
             valMin = 0.10;
             valMax = 1.0;
             
-         otherwise  % 'general'
-            % General thresholds suitable for most foods
-            % Adjusted for A++: Saturation 0.03 balances Rice vs Plate
-            satMin = 0.03;   % Minimum saturation (exclude only pure gray)
-            satMax = 1.0;    % Maximum saturation
-            valMin = 0.10;   % Minimum brightness (exclude very dark)
-            valMax = 0.98;   % Maximum brightness (exclude overexposed white)
+        otherwise
+            satMin = 0.03;
+            satMax = 1.0;
+            valMin = 0.10;
+            valMax = 0.98;
     end
     
-    %% Apply thresholds
+    %% Apply basic color thresholds
     satMask = (S >= satMin) & (S <= satMax);
     valMask = (V >= valMin) & (V <= valMax);
     
-    %% Additional: Exclude white/gray backgrounds
-    % Adjusted for A++: Only exclude SUPER bright/white backgrounds (e.g. pure white studio)
-    % Nasi Lemak rice is white (S~0.05-0.15), so we must be careful not to remove it.
-    whiteBackgroundMask = (S < 0.03) & (V > 0.96);
+    %% A++ ENHANCEMENT: Edge-Preserving Exclusions
+    % Use gradient to detect real edges vs texture
+    grayImg = rgb2gray(img);
+    edgeMap = edge(grayImg, 'canny', [0.05 0.2]);
     
-    % Very dark regions (shadows, edges)
-    darkMask = V < 0.05;
+    % Dilate edges slightly to create "no-go" zones
+    edgeDilated = imdilate(edgeMap, strel('disk', 2));
+    
+    %% Smart Background Detection
+    % Detect uniform areas (likely plate/table) using local std deviation
+    windowSize = 15;
+    localStd = stdfilt(V, true(windowSize));
+    uniformRegions = (localStd < 0.05) & (V > 0.7);
+    
+    % Plate detection: high brightness + low saturation + low texture
+    % CRITICAL: Rice is also bright, low sat, low texture.
+    % Only remove if it's EXTREMELY smooth (Texture < 0.5)
+    texture = entropyfilt(V, true(5));
+    plateMask = (S < 0.05) & (V > 0.90) & (texture < 0.5);
+    
+    % Plate detection: high brightness + low saturation + low texture
+    % Strictly for plates (very smooth, very bright)
+    plateMask = (S < 0.05) & (V > 0.90) & (texture < 0.5);
     
     %% Combine masks
-    mask = satMask & valMask & ~whiteBackgroundMask & ~darkMask;
+    if strcmpi(foodType, 'satay')
+        % For satay: be aggressive about keeping everything
+        mask = satMask & valMask;
+    else
+        baseMask = satMask & valMask;
+        % Exclude ONLY plate. Do not try to guess "wrapper" here.
+        mask = baseMask & ~plateMask;
+    end
     
-    %% Additional color-based food detection
-    % Foods typically have warmer hues (yellow, orange, red, brown)
-    % H values: Red ~0 or ~1, Orange ~0.1, Yellow ~0.15, Green ~0.33, Blue ~0.6
+    %% Ensure Spatial Coherence
+    % Keep largest connected components (Top 5) to allow for separated food items
+    cc = bwconncomp(mask, 8);
+    stats = regionprops(cc, 'Area');
     
-    % Create masks for typical food colors
-    redMask = (H < 0.05 | H > 0.95) & S > 0.2;
-    orangeMask = (H >= 0.02 & H <= 0.12) & S > 0.2;
-    yellowMask = (H >= 0.10 & H <= 0.20) & S > 0.15;
-    brownMask = (H >= 0.02 & H <= 0.15) & (S >= 0.2 & S <= 0.7) & (V >= 0.1 & V <= 0.6);
-    greenMask = (H >= 0.20 & H <= 0.45) & S > 0.15;
-    
-    foodColorMask = redMask | orangeMask | yellowMask | brownMask | greenMask;
-    
-    %% Final mask combines saturation/value with food colors
-    % Be more inclusive - use OR to catch more food regions
-    mask = mask | (foodColorMask & valMask);
+    if ~isempty(stats)
+        areas = [stats.Area];
+        [~, sortedIdx] = sort(areas, 'descend');
+        
+        % Keep top 5 largest regions (Rice, Chicken, Sambal, Egg, Anchovies)
+        keepCount = min(5, numel(sortedIdx));
+        
+        mask = false(size(mask));
+        for i = 1:keepCount
+            idx = sortedIdx(i);
+            mask(cc.PixelIdxList{idx}) = true;
+        end
+    end
 end

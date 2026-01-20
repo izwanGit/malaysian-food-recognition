@@ -1,21 +1,26 @@
 %% SEGMENT FOOD - Main Food Segmentation Pipeline
-% Segments food regions from images using color and morphological methods
+% Segments food regions from images using multi-stage refinement
 %
 % Syntax:
 %   mask = segmentFood(img)
-%   [mask, labeledRegions] = segmentFood(img)
-%   [mask, labeledRegions, segmentedImg] = segmentFood(img)
+%   mask = segmentFood(img, foodType)
+%   [mask, labeledRegions, segmentedImg] = segmentFood(...)
 %
 % Inputs:
-%   img - RGB image (preprocessed recommended)
+%   img      - RGB image (preprocessed recommended)
+%   foodType - Optional food class (e.g., 'satay', 'nasi_lemak')
 %
 % Outputs:
 %   mask           - Binary mask of food region
 %   labeledRegions - Label matrix for different ingredient regions
 %   segmentedImg   - RGB image with segmentation overlay
 
-function [mask, labeledRegions, segmentedImg] = segmentFood(img)
+function [mask, labeledRegions, segmentedImg] = segmentFood(img, foodType)
     %% Input validation
+    if nargin < 2
+        foodType = 'general';
+    end
+    
     if ischar(img) || isstring(img)
         img = imread(img);
     end
@@ -24,137 +29,289 @@ function [mask, labeledRegions, segmentedImg] = segmentFood(img)
         img = im2uint8(img);
     end
     
-    %% Step 1: HSV-based food region detection
-    % Isolate food regions based on color (typically non-white backgrounds)
-    % HSV (Hue-Saturation-Value) color space is used as it separates chroma 
-    % from intensity, making it more robust to lighting variations than RGB.
-    hsvMask = hsvThreshold(img);
+    %% STEP 0: A++ PRE-PROCESSING - Adaptive Histogram Equalization
+    % Enhance contrast while preserving edges
+    labImg = rgb2lab(img);
+    L = labImg(:,:,1);
+    % Mild CLAHE to boost local contrast
+    L_eq = adapthisteq(L./100, 'NumTiles', [8 8], 'ClipLimit', 0.01);
+    labImg(:,:,1) = L_eq * 100;
+    imgEnhanced = lab2rgb(labImg);
     
-    %% Step 2: Apply morphological operations to clean the mask
-    cleanMask = morphologyClean(hsvMask);
+    % A++ ENHANCEMENT: Bilateral Filtering (REMOVED - Reverting to stable)
+    % imgEnhanced = imbilatfilt(imgEnhanced); 
     
-    %% Step 3: Remove background and keep largest connected region(s)
-    cc = bwconncomp(cleanMask);
+    %% STEP 1: Geometry-Aware HSV Thresholding
+    hsvMask = hsvThreshold(imgEnhanced, foodType);
     
-    % A++ ENHANCEMENT: Central Focus Strategy
-    % Instead of relying on connectivity (which fails if rice touches plate),
-    % we enforce a spatial prior: Food is in the center.
+    %% STEP 2: MULTI-SCALE MORPHOLOGICAL CLEANING
+    % Different strategies for different food types
+    switch lower(foodType)
+        case 'satay'
+            % For satay: preserve thin structures
+            options.openRadius = 2;
+            options.closeRadius = 3;
+            options.minArea = 50;  % Small for sticks
+        case 'nasi_lemak'
+            % For rice: fill holes, smooth boundaries
+            options.openRadius = 3;
+            options.closeRadius = 8;
+            options.minArea = 200;
+        otherwise
+            options.openRadius = 3;
+            options.closeRadius = 6;
+            options.minArea = 100;
+    end
+    
+    cleanMask = morphologyClean(hsvMask, options);
+    
+    %% STEP 2.5: BREAK CONNECTIVITY (REMOVED - Reverting to stable)
+    % cleanMask = imerode(cleanMask, seErode);
+    
+    
+    %% STEP 3: A++ CONCAVITY-AWARE SHAPE REFINEMENT
     [rows, cols, ~] = size(img);
-    [X, Y] = meshgrid(1:cols, 1:rows);
-    centerX = cols / 2;
-    centerY = rows / 2;
-    radius = min(rows, cols) * 0.48; % Increased to 96% to keep chicken
     
-    circleMask = ((X - centerX).^2 + (Y - centerY).^2) <= radius^2;
-    
-    % Intersect with our color mask to remove outer plate rims
-    cleanMask = cleanMask & circleMask;
-    
-    % Re-compute components after cutting the edges
+    % Refine individual regions
     cc = bwconncomp(cleanMask);
+    stats = regionprops(cc, 'Solidity', 'ConvexArea', 'Area');
     
-    if cc.NumObjects > 0
-        stats = regionprops(cc, 'Area', 'BoundingBox');
-        areas = [stats.Area];
+    for i = 1:cc.NumObjects
+        regionMask = false(rows, cols);
+        regionMask(cc.PixelIdxList{i}) = true;
         
-        % Keep regions that are at least 5% of the largest region
-        maxArea = max(areas);
-        validIdx = areas >= (maxArea * 0.05);
+        % If region is concave (has indentations), fill them
+        if stats(i).Solidity < 0.85
+            % Create convex hull
+            convexMask = bwconvhull(regionMask);
+            
+            % Fill only if the convex addition is reasonable (< 30% increase)
+            addedArea = sum(convexMask(:)) - stats(i).Area;
+            if addedArea < stats(i).Area * 0.3
+                regionMask = convexMask;
+            end
+        end
         
-        % Create final mask
-        mask = false(size(cleanMask));
-        for i = find(validIdx)
-            mask(cc.PixelIdxList{i}) = true;
+        cleanMask(cc.PixelIdxList{i}) = regionMask(cc.PixelIdxList{i});
+    end
+    %% STEP 3.5: ADAPTIVE K-MEANS REFINEMENT (Saturation Dominant)
+    % Cluster into Food (Colorful) vs Background (Dull)
+    
+    pixelIdx = find(cleanMask);
+    if numel(pixelIdx) > 500
+        % Extract features
+        hsvMap = rgb2hsv(img);
+        S = hsvMap(:,:,2);
+        V = hsvMap(:,:,3);
+        
+        grayImg = rgb2gray(img);
+        entropyMap = entropyfilt(grayImg, true(9));
+        
+        % Features
+        featS = S(pixelIdx);
+        featE = entropyMap(pixelIdx);
+        
+        % Normalize features
+        featS = (featS - min(featS)) / (max(featS) - min(featS) + eps);
+        featE = (featE - min(featE)) / (max(featE) - min(featE) + eps);
+        
+        % CRITICAL WEIGHTING ADJUSTMENT (Restoring "Best Version"):
+        % Saturation is the reliable discriminator for Colorful Food vs Dull Wrapper/Rice.
+        % Texture is ignored because wrinkles create fake texture.
+        
+        featS = featS * 2.5;  % High Saturation Weight
+        featE = featE * 1.0;  % Normal Texture Weight
+        
+        % K-Means Clustering (k=2)
+        features = [featS, featE];
+        
+        try
+            [clusterIdx, centers] = kmeans(features, 2, 'Replicates', 3);
+            
+            % Identify "Food" Cluster
+            % Higher Saturation + Texture Score
+            % Food = Colorful.
+            meanSat1 = centers(1, 1); meanTex1 = centers(1, 2);
+            meanSat2 = centers(2, 1); meanTex2 = centers(2, 2);
+            
+            score1 = meanSat1 + meanTex1;
+            score2 = meanSat2 + meanTex2;
+            
+            foodCluster = 1;
+            if score2 > score1
+                foodCluster = 2;
+            end
+            
+            % RICE RESCUE MISSION:
+            % Rice: High Brightness (V > 0.7), Low Sat (S < 0.3)
+            values = V(pixelIdx);
+            saturations = S(pixelIdx);
+            
+            isRice = (values > 0.70) & (saturations < 0.30);
+            isFoodCluster = (clusterIdx == foodCluster);
+            
+            % Keep Food Cluster OR Rice
+            keepPixels = pixelIdx(isFoodCluster | isRice);
+            
+            refinedMask = false(rows, cols);
+            refinedMask(keepPixels) = true;
+            
+            % Cleanup
+            refinedMask = imclose(refinedMask, strel('disk', 3));
+            refinedMask = imfill(refinedMask, 'holes');
+            refinedMask = bwareaopen(refinedMask, 200);
+            
+            cleanMask = refinedMask;
+            
+        catch
+            % K-means failed
+        end
+    end
+    %% STEP 4: EDGE-GUIDED ACTIVE CONTOURS
+    if sum(cleanMask(:)) > 0
+        % A++ ENHANCEMENT: Edge-based initialization
+        grayImg = rgb2gray(img);
+        edges = edge(grayImg, 'canny', [0.03 0.1]);
+        
+        % Create distance map from edges
+        edgeDist = bwdist(edges);
+        
+        % Refine mask: pixels far from edges but near current boundary
+        currentBoundary = bwperim(cleanMask);
+        boundaryDist = bwdist(currentBoundary);
+        
+        % Where we have edges but mask doesn't align, adjust
+        misaligned = (edgeDist < 3) & (boundaryDist > 5);
+        if any(misaligned(:))
+            % Use edges to guide mask expansion/contraction
+            se = strel('disk', 2);
+            misalignedDilated = imdilate(misaligned, se);
+            
+            % Expand mask to meet nearby edges
+            cleanMask = cleanMask | misalignedDilated;
+        end
+        
+        %% MULTI-PHASE ACTIVE CONTOURS
+        % Phase 1: Coarse adjustment
+        mask = activecontour(img, cleanMask, 50, 'Chan-Vese');
+        
+        % Phase 2: Edge-based refinement
+        mask = activecontour(grayImg, mask, 100, 'edge');
+        
+        % Phase 3: Final smoothing
+        mask = activecontour(img, mask, 50, 'Chan-Vese');
+        
+        % [REMOVED] Gradient Barrier - it was removing smooth food regions (rice/tofu)
+        % The active contour 'edge' method is sufficient for boundary adhearence.
+        
+        % CRITICAL SAFETY CHECK:
+        % If active contours collapsed the mask to nothing (common with weak edges),
+        % revert to the original morphological mask.
+        if sum(mask(:)) < 100
+             mask = cleanMask;
         end
     else
         mask = cleanMask;
     end
     
-    %% Step 4: Refine mask using Active Contours (Snakes)
-    % This "shrink-wraps" the mask to the actual food edges
-    if sum(mask(:)) > 0
-        % ADVANCED OPTIMIZATION:
-        % 1. Dilate first: We expand the mask slightly so the "Snake" starts 
-        %    outside the food boundary and shrinks tightly onto the edges. 
-        %    This prevents the mask from getting stuck inside the food.
-        se_expand = strel('disk', 5);
-        mask = imdilate(mask, se_expand);
-        
-        % 2. Run Active Contours (Chan-Vese)
-        % Algorithm: Chan-Vese Active Contours (Region-based energy minimization)
-        % Reference: T. F. Chan and L. A. Vese, "Active contours without edges," 
-        % IEEE Transactions on Image Processing, vol. 10, no. 2, pp. 266-277, 2001.
-        % Iterations: 200 (Increased for maximum precision)
-        mask = activecontour(img, mask, 200, 'Chan-Vese');
-        
-        % 3. Final Polish: Fill holes and edge-aware smoothing
-        mask = imfill(mask, 'holes');              % Ensure solidity
-        
-        % A++ ENHANCEMENT: Guided Filter for edge-aware smoothing
-        % Reference: He et al., "Guided Image Filtering", ECCV 2010
-        % Unlike morphological closing, Guided Filter preserves food edges
-        % while smoothing mask noise. Uses the original image as guide.
-        try
-            grayGuide = im2double(rgb2gray(img));
-            maskDouble = im2double(mask);
-            smoothedMask = imguidedfilter(maskDouble, grayGuide, ...
-                'NeighborhoodSize', [8 8], 'DegreeOfSmoothing', 0.01);
-            mask = smoothedMask > 0.5;  % Re-binarize
-        catch
-            % Fallback to standard morphological closing
-            mask = imclose(mask, strel('disk', 3));
+    %% STEP 4.5: GRABCUT REFINEMENT (REMOVED - Reverting to stable)
+    % Reverting to previous best version without GrabCut.
+
+    
+    %% STEP 5: SEMANTIC FILLING (Fix Holes in Solid Objects)
+    mask = imfill(mask, 'holes');
+    
+    %% STEP 6: GLOBAL CONTEXT REFINEMENT
+    % Use superpixels helper if available
+    try
+        if exist('superpixelRefine', 'file')
+             mask = superpixelRefine(img, mask);
+        else
+             mask = bwareaopen(mask, 500);
         end
-        
-        % A++ ENHANCEMENT: Texture Guard (Robust Plate Removal)
-        % Plates are smooth (low entropy). Food (Rice/Meat/Veg) is textured (high entropy).
-        % We remove remaining regions that are BRIGHT (Plate) AND SMOOTH.
-        % This protects dark smooth sauce, but kills white smooth plate.
-        safeZone = grayGuide < 0.9; % Don't touch dark things (Sauce/Meat)
-        textureMap = entropyfilt(grayGuide);
-        smoothPlateMask = (grayGuide > 0.7) & (textureMap < 0.8); % Bright & Smooth
-        
-        % Only remove if it's NOT in the "safe zone" (i.e., it's bright)
-        mask = mask & (~smoothPlateMask | safeZone);
-        
-        % Final cleanup of small disconnected noise
+    catch
         mask = bwareaopen(mask, 500);
     end
-
-    %% Step 5: K-means clustering for ingredient segmentation
-    if nargout > 1
-        % Apply k-means only within the food mask
-        numClusters = 5;  % Typical number of ingredient types
-        labeledRegions = kmeansSegment(img, mask, numClusters);
+    
+    %% STEP 7: CONTAINER REMOVAL (Plates/Trays)
+    % Detect circular/rectangular containers using Hough Transform
+    grayImg = rgb2gray(img);
+    edges = edge(grayImg, 'canny');
+    
+    % Find circles (plates)
+    rmin = round(min(rows,cols)/10);
+    rmax = round(min(rows,cols)/2);
+    [centers, radii, ~] = imfindcircles(edges, [rmin, rmax], ...
+        'ObjectPolarity', 'bright', 'Sensitivity', 0.9);
+    
+    if ~isempty(centers)
+        % Create plate mask
+        plateMask = false(rows, cols);
+        [X, Y] = meshgrid(1:cols, 1:rows);
+        
+        for i = 1:size(centers, 1)
+            distance = sqrt((X - centers(i,1)).^2 + (Y - centers(i,2)).^2);
+            plateMask = plateMask | (distance <= radii(i) * 0.95);
+        end
+        
+        % Keep only food that's on the plate (or remove plate itself)
+        if strcmpi(foodType, 'general')
+            % Keep intersection of food and plate
+            mask = mask & plateMask;
+        else
+            % Remove plate pixels from food mask (assuming plate is white/bright)
+            platePixels = plateMask & (grayImg > 200);  % Bright plate areas
+            mask = mask & ~platePixels;
+        end
     end
     
-    %% Step 5: Create visualization if requested
-    if nargout > 2
-        % Create overlay visualization
-        segmentedImg = img;
-        
-        % Create colored overlay for the mask outline
-        maskOutline = bwperim(mask);
-        
-        % Make outline thicker (dilate)
-        se = strel('disk', 2);
-        maskOutline = imdilate(maskOutline, se);
-        
-        % Apply bright green outline
-        for c = 1:3
-            channel = segmentedImg(:,:,c);
-            if c == 2  % Green channel
-                channel(maskOutline) = 255;
-            else
-                channel(maskOutline) = 0;
-            end
-            segmentedImg(:,:,c) = channel;
-        end
-        
-        % Dim background (Make it darker for "Pop" effect - 0.35 intensity)
-        for c = 1:3
-            channel = segmentedImg(:,:,c);
-            channel(~mask) = uint8(double(channel(~mask)) * 0.35); % Darker cinema-style background
-            segmentedImg(:,:,c) = channel;
+    %% STEP 8: FINAL POLISH
+    % Smooth but preserve details
+    mask = imclose(mask, strel('disk', 2));
+    mask = imfill(mask, 'holes');
+    
+    % Remove any remaining tiny noise
+    mask = bwareaopen(mask, 100);
+    
+    %% Output Handling
+    if nargout > 1
+        numClusters = 5;
+        if exist('kmeansSegment', 'file')
+            labeledRegions = kmeansSegment(img, mask, numClusters);
+        else
+            labeledRegions = zeros(size(mask));
         end
     end
+    
+    if nargout > 2
+        segmentedImg = createVisualization(img, mask);
+    end
+end
+
+%% Helper function for visualization
+function visImg = createVisualization(img, mask)
+    visImg = img;
+    maskOutline = bwperim(mask);
+    
+    % Thicker, colored outline
+    maskOutline = imdilate(maskOutline, strel('disk', 3));
+    
+    % Green outline
+    visImg(:,:,1) = visImg(:,:,1) .* uint8(~maskOutline) + uint8(maskOutline) * 0;
+    visImg(:,:,2) = visImg(:,:,2) .* uint8(~maskOutline) + uint8(maskOutline) * 255;
+    visImg(:,:,3) = visImg(:,:,3) .* uint8(~maskOutline) + uint8(maskOutline) * 0;
+    
+    % Dim background
+    dimFactor = 0.4;
+    for c = 1:3
+        channel = visImg(:,:,c);
+        channel(~mask) = uint8(double(channel(~mask)) * dimFactor);
+        visImg(:,:,c) = channel;
+    end
+    
+    % Highlight food with slight saturation boost
+    hsvImg = rgb2hsv(visImg);
+    hsvImg(:,:,2) = hsvImg(:,:,2) .* (1 + 0.2 * double(mask));
+    hsvImg(:,:,2) = min(hsvImg(:,:,2), 1);
+    visImg = hsv2rgb(hsvImg);
 end
