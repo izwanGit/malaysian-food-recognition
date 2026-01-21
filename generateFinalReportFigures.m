@@ -24,12 +24,13 @@ function generateFinalReportFigures()
     % 1. SELECT VALID SAMPLE IMAGE 
     % We need an image that actually segments well to avoid NaN values
     classNames = {'nasi_lemak', 'roti_canai', 'satay', 'laksa', 'popiah', 'kaya_toast', 'mixed_rice'};
-    targetClasses = {'nasi_lemak'}; % Force Nasi Lemak for A++ report consistency
-    sampleImgPath = '';
+    targetClasses = {'mixed_rice'}; % Target Mixed Rice for Nasi Campur
+    sampleImgPath = '/Users/izwan/CSC566_MINI GROUP PROJECT_HAWKER FOOD CALORIE_TEAMONE/nasicampur.jpg';
     
     fprintf('Searching for a clear sample image...\n');
     found = false;
-    for c = 1:length(targetClasses)
+    if isempty(sampleImgPath) % Only search if not pre-set
+        for c = 1:length(targetClasses)
         classPath = fullfile(baseDir, 'dataset', 'train', targetClasses{c});
         d = dir(fullfile(classPath, '*.jpg'));
         for i = 1:min(length(d), 5) % Check first 5 images
@@ -44,6 +45,7 @@ function generateFinalReportFigures()
             end
         end
         if found, break; end
+        end
     end
     
     if isempty(sampleImgPath)
@@ -194,6 +196,33 @@ function generateFinalReportFigures()
             close;
         end
     end
+
+    %% --- TABLE_FIGURES: STATIC FIGURES FOR REPORT ---
+    % These match the names expected in CHAPTER_2_RESULTS.md
+    fprintf('Generating Fig06 and Fig22 for Report...\n');
+    figDir = fullfile(outputDir, 'Table_Figures');
+    if ~exist(figDir, 'dir'), mkdir(figDir); end
+    
+    % Fig06: Preprocessing Comparison (Original vs Processed)
+    fig06 = figure('Visible', 'off', 'Position', [100 100 1000 500]);
+    subplot(1,2,1); imshow(img); title('Original Input Image');
+    subplot(1,2,2); imshow(processedImg); title('Preprocessed Image');
+    saveas(fig06, fullfile(figDir, 'Fig06_PreprocessingComparison.png'));
+    close(fig06);
+    
+    % Fig22: GLCM Properties Visualization
+    grayImg8 = im2uint8(grayscaleImg);
+    offsets = [0 1; -1 1; -1 0; -1 -1];
+    glcms = graycomatrix(grayImg8, 'Offset', offsets, 'NumLevels', 32);
+    statsGLCM = graycoprops(glcms, {'Contrast', 'Correlation', 'Energy', 'Homogeneity'});
+    
+    fig22 = figure('Visible', 'off', 'Position', [100 100 1000 400]);
+    subplot(1,4,1); bar(statsGLCM.Contrast); title('Contrast');
+    subplot(1,4,2); bar(statsGLCM.Correlation); title('Correlation');
+    subplot(1,4,3); bar(statsGLCM.Energy); title('Energy');
+    subplot(1,4,4); bar(statsGLCM.Homogeneity); title('Homogeneity');
+    saveas(fig22, fullfile(figDir, 'Fig22_GLCMProperties.png'));
+    close(fig22);
 
     %% --- ADVANCED: REAL ARCHITECTURE PLOT (SqueezeNet) ---
     fprintf('Generating Authentic SqueezeNet Architecture Plot...\n');

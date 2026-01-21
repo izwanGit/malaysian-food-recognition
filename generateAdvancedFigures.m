@@ -15,16 +15,25 @@ function generateAdvancedFigures()
     if ~exist(outputDir, 'dir'), mkdir(outputDir); end
     
     % Find a good sample image
-    classNames = {'nasi_lemak', 'mixed_rice', 'satay', 'laksa'};
-    sampleImg = [];
-    for c = 1:length(classNames)
-        d = dir(fullfile(baseDir, 'dataset', 'train', classNames{c}, '*.jpg'));
-        if ~isempty(d)
-            sampleImg = imread(fullfile(d(1).folder, d(1).name));
-            sampleClass = classNames{c};
-            break;
-        end
+    % Find a good sample image
+    classNames = {'mixed_rice', 'nasi_lemak', 'satay', 'laksa'};
+    sampleImgPath = '/Users/izwan/CSC566_MINI GROUP PROJECT_HAWKER FOOD CALORIE_TEAMONE/nasicampur.jpg';
+    
+    if ~exist(sampleImgPath, 'file')
+         % Fallback to search if the custom file is gone (safety)
+         for c = 1:length(classNames)
+            d = dir(fullfile(baseDir, 'dataset', 'train', classNames{c}, '*.jpg'));
+            if ~isempty(d)
+                sampleImgPath = fullfile(d(1).folder, d(1).name);
+                sampleClass = classNames{c};
+                break;
+            end
+         end
+    else
+         sampleClass = 'mixed_rice'; % Nasi Campur is Mixed Rice
     end
+    
+    sampleImg = imread(sampleImgPath);
     
     if isempty(sampleImg)
         error('No sample images found in dataset/train/');
@@ -103,7 +112,10 @@ function generateAdvancedFigures()
     close;
     
     %% ========== 3. COLOR DENSITY ANALYSIS ==========
+    % Output: final_report_figures/color_analysis
     fprintf('3. Generating Color Density Analysis...\n');
+    colorDir = fullfile(baseDir, 'final_report_figures', 'color_analysis');
+    if ~exist(colorDir, 'dir'), mkdir(colorDir); end
     
     [mask, ~, ~] = segmentFood(processedImg);
     hsvImg = rgb2hsv(im2double(processedImg));
@@ -157,8 +169,84 @@ function generateAdvancedFigures()
     title(sprintf('Low-Cal Pixels (Green): %.1f%%', sum(greenMask(:))/sum(mask(:))*100), 'FontSize', 11);
     
     sgtitle('Color-Based Density Analysis', 'FontSize', 14, 'FontWeight', 'bold');
-    saveas(gcf, fullfile(outputDir, '03_Color_Density_Analysis.png'));
+    saveas(gcf, fullfile(colorDir, '03_Color_Density_Analysis.png'));
     close;
+    
+    % A++ EXTRA: Individual Channel Analysis (Requested)
+    fprintf('  Generating Individual Color Channels...\n');
+    % RGB Channels
+    rgbNames = {'Red', 'Green', 'Blue'};
+    rgbFiles = {'RGB_R_Channel.png', 'RGB_G_Channel.png', 'RGB_B_Channel.png'};
+    for c = 1:3
+        ch = processedImg(:,:,c);
+        imwrite(ch, fullfile(colorDir, rgbFiles{c}));
+    end
+    
+    % HSV Channels
+    hsvNames = {'Hue', 'Saturation', 'Value'};
+    hsvFiles = {'HSV_H_Hue.png', 'HSV_S_Saturation.png', 'HSV_V_Value.png'};
+    % Note: hsvImg is double 0-1. Convert to uint8 for saving visible image
+    for c = 1:3
+        ch = hsvImg(:,:,c);
+        ch = uint8(ch * 255);
+        imwrite(ch, fullfile(colorDir, hsvFiles{c}));
+    end
+    
+    %% ========== 3.5 K-MEANS CLUSTERING ANALYSIS ==========
+    % Explicitly requested by user: final_report_figures/kmeans_analysis
+    fprintf('3.5 Generating K-Means Analysis...\n');
+    kmeansDir = fullfile(baseDir, 'final_report_figures', 'kmeans_analysis');
+    if ~exist(kmeansDir, 'dir'), mkdir(kmeansDir); end
+    
+    % Re-run the K-Means logic locally for visualization
+    % Extract features exactly as in segmentFood
+    hsvMap = rgb2hsv(processedImg);
+    S = hsvMap(:,:,2);
+    grayRef = rgb2gray(processedImg);
+    entropyMap = entropyfilt(grayRef, true(9));
+    pixelIdx = 1:numel(grayRef);
+    
+    % Use simple features for full-image visualization
+    f1 = double(S(:));
+    f2 = double(entropyMap(:));
+    % Normalize
+    f1 = (f1 - min(f1)) / (max(f1) - min(f1) + eps);
+    f2 = (f2 - min(f2)) / (max(f2) - min(f2) + eps);
+    fts = [f1, f2];
+    
+    % Run K-Means (k=5 detailed analysis)
+    numK = 5;
+    [cIdx, ctrs] = kmeans(fts(1:10:end, :), numK, 'Replicates', 3); 
+    
+    % Map back to image
+    fullClusterIdx = knnsearch(ctrs, fts);
+    clusterMap = reshape(fullClusterIdx, size(grayRef));
+    rgbMap = label2rgb(clusterMap, 'jet', 'k');
+    
+    % Save summary visualization
+    figure('Visible', 'off', 'Position', [100 100 1000 500]);
+    subplot(1,2,1);
+    imshow(processedImg); title('Input Image');
+    subplot(1,2,2);
+    imshow(rgbMap); title(sprintf('K-Means Clusters (k=%d)', numK));
+    sgtitle('K-Means Segmentation Logic', 'FontSize', 14);
+    saveas(gcf, fullfile(kmeansDir, '00_KMeans_Clusters.png'));
+    close;
+    
+    % Save Individual Clusters
+    fprintf('  Generating Individual Cluster Images...\n');
+    for k = 1:numK
+        % Create a binary mask for this cluster
+        cMask = (clusterMap == k);
+        
+        % Create an overlay on black background
+        cImg = zeros(size(processedImg), 'uint8');
+        for c = 1:3
+            origCh = processedImg(:,:,c);
+            cImg(:,:,c) = origCh .* uint8(cMask);
+        end
+        imwrite(cImg, fullfile(kmeansDir, sprintf('Cluster_%d.png', k)));
+    end
     
     %% ========== 4. COMPACTNESS ANALYSIS ==========
     fprintf('4. Generating Compactness Analysis...\n');
@@ -192,7 +280,10 @@ function generateAdvancedFigures()
     close;
     
     %% ========== 5. FULL PIPELINE COMPARISON ==========
+    % Output: final_report_figures/extra_visuals
     fprintf('5. Generating Full Pipeline Comparison...\n');
+    extraDir = fullfile(baseDir, 'final_report_figures', 'extra_visuals');
+    if ~exist(extraDir, 'dir'), mkdir(extraDir); end
     
     figure('Visible', 'off', 'Position', [100 100 1400 350]);
     
@@ -216,7 +307,52 @@ function generateAdvancedFigures()
     imshow(resultImg); title('5. Final Result', 'FontSize', 11);
     
     sgtitle('Complete Analysis Pipeline', 'FontSize', 14, 'FontWeight', 'bold');
-    saveas(gcf, fullfile(outputDir, '05_Full_Pipeline.png'));
+    saveas(gcf, fullfile(extraDir, '05_Full_Pipeline.png'));
+    close;
+    
+    %% ========== 6. PORTION & CALORIE ANALYSIS ==========
+    % Output: final_report_figures/extra_visuals/portion_calorie_analysis
+    fprintf('6. Generating Portion & Calorie Analysis...\n');
+    portionDir = fullfile(extraDir, 'portion_calorie_analysis');
+    if ~exist(portionDir, 'dir'), mkdir(portionDir); end
+    
+    % Simulate Portion Calculation
+    [mask, ~, ~] = segmentFood(processedImg);
+    foodArea = sum(mask(:));
+    totalArea = numel(mask);
+    ratio = foodArea / totalArea;
+    
+    % Define Logic Visualization
+    figure('Visible', 'off', 'Position', [100 100 800 600]);
+    
+    subplot(2,2,1);
+    imshow(mask); title(sprintf('Segmented Food Area: %d px', foodArea), 'FontSize', 12);
+    
+    subplot(2,2,2);
+    % Create a gauge chart for ratio
+    resImg = insertShape(zeros(size(mask)), 'FilledCircle', [256 256 200], 'Color', 'white');
+    resImg = insertShape(resImg, 'FilledCircle', [256 256 200*sqrt(ratio)], 'Color', 'green');
+    imshow(resImg); 
+    title(sprintf('Food-to-Plate Ratio: %.1f%%', ratio*100), 'FontSize', 12);
+    
+    subplot(2,2,3);
+    % Bar Chart for Categories
+    y = [0.25 0.50 0.75]; % Thumb rules
+    bar(1:3, [0.2 0.5 0.8], 'FaceColor', [0.8 0.8 0.8]); hold on;
+    bar(2, ratio, 'FaceColor', 'r'); % Current
+    set(gca, 'XTickLabel', {'Small', 'Medium', 'Large'});
+    title('Portion Classification Logic', 'FontSize', 12);
+    
+    subplot(2,2,4);
+    % Nutrition Breakdown Text
+    axis off;
+    text(0.1, 0.8, 'Estimated Nutrition:', 'FontSize', 14, 'FontWeight', 'bold');
+    text(0.1, 0.6, sprintf('Base Calories: %d kcal (100g)', 644), 'FontSize', 12);
+    text(0.1, 0.5, sprintf('Portion Multiplier: %.2fx', 1.0 + (ratio-0.3)), 'FontSize', 12);
+    text(0.1, 0.3, sprintf('TOTAL: %d kcal', round(644 * (1.0 + (ratio-0.3)))), 'FontSize', 16, 'Color', 'r', 'FontWeight', 'bold');
+    
+    sgtitle(sprintf('Portion & Calorie Estimation (%s)', strrep(sampleClass, '_', ' ')), 'FontSize', 16, 'FontWeight', 'bold');
+    saveas(gcf, fullfile(portionDir, '06_Portion_Logic.png'));
     close;
     
     %% ========== DONE ==========

@@ -251,10 +251,7 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
                 app.FatLabel.Visible = 'on';
                 app.DailyValueLabel.Visible = 'on';
                 
-                % Clear other labels if they exist (just in case)
-                app.CarbsLabel.Text = '';
-                app.FatLabel.Text = '';
-                app.DailyValueLabel.Text = '';
+                % Cleared erroneous text reset
                 
                 % Update status with classifier info
                 app.ProcessingTimeLabel.Text = sprintf('%.2fs', processingTime);
