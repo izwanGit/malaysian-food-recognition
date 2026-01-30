@@ -640,3 +640,4 @@ classdef HawkerFoodCalorieApp < matlab.apps.AppBase
         end
     end
 end
+    
