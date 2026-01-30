@@ -423,7 +423,7 @@ Implemented in `classification/trainClassifier.m`.
 | **Solver** | ISDA, SMO, L1QP | SMO |
 
 ### Model B: SqueezeNet (Deep Learning)
-Implemented in `train_resnet.m` (Note: Script name uses 'resnet' but logic loads `squeezenet`).
+Implemented in `train_squeezenet.m`.
 
 **Why SqueezeNet?**
 SqueezeNet achieves AlexNet-level accuracy with **50x fewer parameters**, making it ideal for the "Mini Group Project" scope where model size and inference speed are critical.
@@ -532,7 +532,7 @@ This section details the critical hyperparameters used in the project scripts. M
 | `BoxConstraint` | Auto | Controls penalty for misclassification. |
 | `Standardize` | True | Essential for SVM convergence. |
 
-### CNN Training (`train_resnet.m`)
+### CNN Training (`train_squeezenet.m`)
 | Parameter | Value | Effect of Changing |
 | :--- | :--- | :--- |
 | `InitialLearnRate`| 0.001 | Lower = Slower convergence. Higher = Unstable. |
@@ -650,7 +650,7 @@ This section is for developers wishing to extend the project.
     ```
 3.  **Retrain Models**:
     *   Run `trainClassifier` to update the SVM.
-    *   Run `train_resnet` to fine-tune SqueezeNet.
+    *   Run `train_squeezenet` to fine-tune SqueezeNet.
 4.  **Update GUI**: The GUI automatically detects classes from the trained model, so no UI code changes are needed!
 
 ### Testing the Pipeline
@@ -670,7 +670,7 @@ We provide a Unit Test suite in `tests/`.
 
 **Issue 2: "Low Memory" during training**
 *   **Cause**: GPU memory is full.
-*   **Fix**: Reduce `MiniBatchSize` in `train_resnet.m` from 32 to 16 or 8.
+*   **Fix**: Reduce `MiniBatchSize` in `train_squeezenet.m` from 32 to 16 or 8.
 
 **Issue 3: "Undefined function 'activecontour'"**
 *   **Cause**: Image Processing Toolbox is missing.
@@ -698,7 +698,7 @@ CSC566_MINI GROUP PROJECT_HAWKER FOOD CALORIE_TEAMONE/
 ├── README.md                      # This comprehensive documentation
 ├── analyzeHawkerFood.m            # Main CLI analysis script
 ├── projectSetup.m                 # Path configuration script
-├── train_resnet.m                 # Deep Learning training (SqueezeNet)
+├── train_squeezenet.m             # Deep Learning training (SqueezeNet)
 ├── dataset/                       # Image dataset folder
 │   ├── train/                     # Training images organized by class
 │   └── test/                      # Testing images organized by class
