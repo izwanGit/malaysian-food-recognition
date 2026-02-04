@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-02-01T06:17:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="CNN Training Lifecycle" id="fig4_4_cnn_training">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Dataset (Cylinder) -->
+        <mxCell id="dataset" value="Image Dataset" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="350" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Split -->
+        <mxCell id="split" value="80/20 Train/Test Split" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="140" width="140" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Augmentation -->
+        <mxCell id="aug" value="Data Augmentation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="220" width="140" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Load Pre-trained SqueezeNet -->
+        <mxCell id="loadnet" value="Load Pre-trained SqueezeNet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="300" width="180" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Modify Layers -->
+        <mxCell id="modify" value="Replace conv10 and&#xa;Classification Layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="380" width="180" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- Set SGDM Hyperparameters -->
+        <mxCell id="config" value="Set SGDM Hyperparameters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="470" width="180" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Train Network -->
+        <mxCell id="train" value="Train Network" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="340" y="550" width="140" height="45" as="geometry" />
+        </mxCell>
+        
+        <!-- Validation Check (Diamond) -->
+        <mxCell id="check" value="Validation&#xa;Satisfied?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="635" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Save foodCNN.mat -->
+        <mxCell id="save" value="Save foodCNN.mat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="760" width="140" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Final Test Set Evaluation -->
+        <mxCell id="eval" value="Final Test Set Evaluation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="840" width="160" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ARROWS -->
+        
+        <!-- Dataset to Split -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="dataset" target="split">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Split to Aug -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="split" target="aug">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Aug to LoadNet -->
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="aug" target="loadnet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- LoadNet to Modify -->
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="loadnet" target="modify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Modify to Config -->
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="modify" target="config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Config to Train -->
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="config" target="train">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Train to Check -->
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="train" target="check">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Check to Train (No - Loop Back) -->
+        <mxCell id="arrow8" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#b85450;endArrow=blockThin;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontStyle=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="check" target="train">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="675" />
+              <mxPoint x="280" y="573" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Check to Save (Yes) -->
+        <mxCell id="arrow9" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;endArrow=blockThin;endFill=1;fontStyle=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="check" target="save">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Save to Eval -->
+        <mxCell id="arrow10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;endArrow=blockThin;endFill=1;" edge="1" parent="1" source="save" target="eval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

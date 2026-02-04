@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-02-02T15:17:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="System Flow" id="system-flow-diagram">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Input Image -->
+        <mxCell id="input" value="Input Image" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="520" y="20" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Preprocessing Module -->
+        <mxCell id="preprocess" value="Preprocessing Module" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="100" width="160" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrow: Input to Preprocess -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="input" target="preprocess">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Processing Branch Diamond -->
+        <mxCell id="branch" value="Processing&#xa;Branch" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="530" y="180" width="100" height="80" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrow: Preprocess to Branch -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="preprocess" target="branch">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Branch 1: Feature Engineering Container -->
+        <mxCell id="branch1_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="280" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="branch1_label" value="Branch 1: Feature Engineering" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="295" width="200" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- Color Histogram -->
+        <mxCell id="color_hist" value="Color Histogram&#xa;Extraction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="110" height="50" as="geometry"/>
+        </mxCell>
+        
+        <!-- GLCM Texture -->
+        <mxCell id="glcm" value="GLCM Texture&#xa;Analysis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="190" y="330" width="110" height="50" as="geometry"/>
+        </mxCell>
+        
+        <!-- Feature Concatenation -->
+        <mxCell id="feature_concat" value="Feature Concatenation&#xa;(127-D Vector)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="160" height="45" as="geometry"/>
+        </mxCell>
+        
+        <!-- SVM Classifier -->
+        <mxCell id="svm" value="SVM Classifier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="115" y="460" width="130" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrows in Branch 1 -->
+        <mxCell id="arr_ch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="color_hist" target="feature_concat">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_gl" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="glcm" target="feature_concat">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_fc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="feature_concat" target="svm">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Branch 2: Deep Learning Container -->
+        <mxCell id="branch2_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="290" width="280" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="branch2_label" value="Branch 2: Deep Learning" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="900" y="295" width="160" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- SqueezeNet -->
+        <mxCell id="squeezenet" value="SqueezeNet&#xa;Architecture" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="330" width="120" height="50" as="geometry"/>
+        </mxCell>
+        
+        <!-- Fire Modules -->
+        <mxCell id="fire" value="Fire Modules 1-9" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="395" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Global Avg Pooling -->
+        <mxCell id="gap" value="Global Avg Pooling" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="450" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Softmax -->
+        <mxCell id="softmax" value="Softmax Classification" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="910" y="505" width="140" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrows in Branch 2 -->
+        <mxCell id="arr_sq" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="squeezenet" target="fire">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_fi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="fire" target="gap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_gp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="gap" target="softmax">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrows from Branch to Feature Engineering & Deep Learning -->
+        <mxCell id="arr_b1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="branch" target="color_hist">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="220"/>
+              <mxPoint x="180" y="355"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_b1b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="branch" target="glcm">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="220"/>
+              <mxPoint x="180" y="280"/>
+              <mxPoint x="245" y="280"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_b2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="branch" target="squeezenet">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="220"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Calorie Estimation Container -->
+        <mxCell id="calorie_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="560" width="400" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="calorie_label" value="Calorie Estimation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="510" y="565" width="140" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- Context-Aware Segmentation -->
+        <mxCell id="segment" value="Context-Aware&#xa;Adaptive Segmentation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="600" width="140" height="50" as="geometry"/>
+        </mxCell>
+        
+        <!-- Binary Mask -->
+        <mxCell id="mask" value="Binary Mask&#xa;Generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="670" width="140" height="45" as="geometry"/>
+        </mxCell>
+        
+        <!-- Area Calculation -->
+        <mxCell id="area" value="Area Calculation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="735" width="140" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Predicted Class -->
+        <mxCell id="predicted" value="Predicted Class" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="600" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- MyFCD Lookup -->
+        <mxCell id="myfcd" value="MyFCD Lookup&#xa;&amp; Calculation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="700" width="160" height="50" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrows in Calorie Container -->
+        <mxCell id="arr_seg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="segment" target="mask">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_msk" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="mask" target="area">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_ar" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="area" target="myfcd">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_pr" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;strokeColor=#666666;" edge="1" parent="1" source="predicted" target="myfcd">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrow: Preprocess to Segmentation -->
+        <mxCell id="arr_ps" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="preprocess" target="segment">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="150"/>
+              <mxPoint x="360" y="150"/>
+              <mxPoint x="360" y="625"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Arrow: SVM to Predicted -->
+        <mxCell id="arr_svm_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="svm" target="predicted">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="540"/>
+              <mxPoint x="660" y="540"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Arrow: Softmax to Predicted -->
+        <mxCell id="arr_soft_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="softmax" target="predicted">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="560"/>
+              <mxPoint x="660" y="560"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Final Output -->
+        <mxCell id="output" value="Final Output:&#xa;Class + Calories + Nutrients" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="490" y="830" width="180" height="50" as="geometry"/>
+        </mxCell>
+        
+        <!-- Arrow: MyFCD to Output -->
+        <mxCell id="arr_out" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="myfcd" target="output">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
